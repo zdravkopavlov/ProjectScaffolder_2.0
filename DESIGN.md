@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.5 |
+| Document version | 1.6 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -149,6 +149,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-031 | Template saving belongs in the template-list footer with a visible dirty-state indicator and `Ctrl+S` support. | Confirmed |
 | D-032 | The editor exposes one clearly named `Test template...` workflow instead of separate ambiguous Preview and Test Generate buttons. | Confirmed |
 | D-033 | The runner writes a compact structured log for successful and failed runs, retaining at most 100 files and 30 days. | Confirmed |
+| D-034 | The editor implementation uses WPF with an editor-local mutable view-model layer; Core contracts remain UI-independent and immutable. | Confirmed |
 
 ## 7. User workflows
 
@@ -912,7 +913,7 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 
 ### Milestone 3 — Template editor
 
-- [ ] Establish the WPF visual design.
+- [x] Establish the WPF visual design.
 - [ ] Implement template library.
 - [ ] Implement structure tree and properties panel.
 - [ ] Implement text-file editor.
@@ -920,6 +921,21 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 - [ ] Implement folder import.
 - [ ] Implement template import/export.
 - [ ] Implement unsaved-change protection.
+
+Current verified editor slice:
+
+- [x] Launch a consoleless WPF editor using the approved three-pane layout.
+- [x] Follow the Windows application theme and provide runtime System, Light, and Dark choices.
+- [x] Load templates from Local AppData, seed the bundled example once, and keep damaged templates visible.
+- [x] Create and duplicate templates; add, rename, remove, and reorder basic folder/text nodes.
+- [x] Edit text content, encoding, line endings, and collision behavior in the properties pane.
+- [x] Continuously validate both contract rules and resolved output-path conflicts.
+- [x] Save valid templates atomically with dirty-state tracking and `Ctrl+S`.
+- [x] Preserve independent dirty sessions while switching templates and protect all dirty sessions on close.
+- [ ] Add attached-file management and asset-safe duplication.
+- [ ] Add drag-and-drop, clipboard operations, and in-session delete undo.
+- [ ] Complete library deletion, ordering, folder import, and template package import/export.
+- [ ] Add variable insertion, search/replace, resolved preview, and disposable test generation.
 
 ### Milestone 4 — Classic Explorer integration
 
@@ -1020,6 +1036,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Follow the Windows theme by default with Light and Dark overrides. | The editor should feel native on the user's system while retaining an explicit accessibility and preference choice. |
 | 2026-08-24 | Complete the Milestone 1 Core foundation on .NET 10. | Strict runtime contracts, semantic validation, deterministic variables, contained output planning, asset verification, collision preflight, encoding, and atomic persistence establish a testable safety boundary before filesystem generation or UI work. |
 | 2026-08-24 | Complete the Milestone 2 generation runner and retain bounded logs for all invocations. | The consoleless runner now applies validated plans transactionally, creates stable hidden project identity, rolls back conservatively, stays silent on success, reports failures clearly, and preserves enough structured diagnostics without unbounded storage growth. |
+| 2026-08-24 | Confirm WPF and an editor-local mutable view-model layer for the template editor. | WPF implements the approved Windows-native three-pane experience, while converting to strict immutable Core contracts only for validation and persistence keeps UI state out of the generation engine. |
 
 ## 27. Authoritative references
 
