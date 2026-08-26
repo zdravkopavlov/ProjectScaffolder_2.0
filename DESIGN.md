@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.2 |
+| Document version | 1.3 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -137,13 +137,17 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-019 | `.projectID.json` receives the Windows Hidden attribute by default. | Confirmed |
 | D-020 | An existing project may rerun its original template, but invoking a different template is a blocking error. | Confirmed |
 | D-021 | Existing generated files are skipped by default, while existing folders are safely reused. | Confirmed |
-| D-022 | Initial structure nodes include folders, empty files, templated text files, and attached asset files copied verbatim. | Confirmed |
+| D-022 | Initial structure nodes include folders, templated text files, and attached asset files copied verbatim. A text file may have empty content, so a separate empty-file node is unnecessary. | Confirmed |
 | D-023 | Project Scaffolder uses a per-user, non-elevated installation under `%LOCALAPPDATA%\Programs\ProjectScaffolder`; user templates and settings use `%LOCALAPPDATA%\ProjectScaffolder`. | Confirmed |
 | D-024 | JSON contract version 1 is defined jointly by `JSON-CONTRACT.md` and the strict Draft 2020-12 schemas under `schemas`. | Confirmed |
 | D-025 | Explorer enablement and order are local library state and are not exported inside templates; new/imported templates begin disabled. | Confirmed |
 | D-026 | Version 1 supports `skip`, explicit `overwrite`, and `fail` file-collision policies, with `skip` as the default. | Confirmed |
 | D-027 | Template and node identities use stable UUIDv7 values; version 1 variables are lowercase and case-sensitive. | Confirmed |
 | D-028 | The product is an artist-first generic scaffolder: 3ds Max is a polished starter use case, not a specialized engine or editor mode. | Confirmed |
+| D-029 | The editor follows the Windows light/dark theme by default and offers explicit Light and Dark overrides. | Confirmed |
+| D-030 | Explorer registration is toggled directly on each template row and applies immediately; it is not part of the template's unsaved document state. | Confirmed |
+| D-031 | Template saving belongs in the template-list footer with a visible dirty-state indicator and `Ctrl+S` support. | Confirmed |
+| D-032 | The editor exposes one clearly named `Test template...` workflow instead of separate ambiguous Preview and Test Generate buttons. | Confirmed |
 
 ## 7. User workflows
 
@@ -199,16 +203,16 @@ If validation or generation fails:
 1. The user selects `Import Folder`.
 2. The user chooses an existing project directory.
 3. The editor reads its hierarchy.
-4. The user chooses whether file contents should be imported, represented as empty files, or omitted.
+4. The user chooses whether files should be imported as editable text, attached verbatim, or omitted.
 5. Known occurrences of the source folder name and path may be offered as variable substitutions, but replacements require review.
 6. The imported result opens as an unsaved template for validation and editing.
 
 ### 7.6 Enabling or disabling a menu entry
 
-1. The user selects a template in the editor.
-2. The user toggles `Show this project type in the Explorer menu`.
-3. The application saves the template and refreshes the submenu registration.
-4. Disabling a template does not delete or modify its structure.
+1. The user checks or clears the Explorer checkbox on that template's row.
+2. The application immediately updates local library state and refreshes the submenu registration.
+3. The checkbox becomes green when enabled and gray when disabled, with a text tooltip and accessible label identifying its purpose.
+4. Disabling a template does not save, delete, or modify its structure.
 
 ## 8. Explorer integration
 
@@ -253,21 +257,25 @@ A future native extension must perform no template generation inside Explorer's 
 
 ## 9. Editor experience
 
-### 9.1 Proposed primary layout
+### 9.1 Confirmed primary layout
 
 ```text
-┌──────────────────┬──────────────────────────────┬──────────────────────┐
-│ Templates        │ Project Structure            │ Properties           │
-│                  │                              │                      │
-│ Max Project      │ 📁 {{project_name}}          │ Name                 │
-│ Photogrammetry   │   ├─ 📁 SCENES               │ Node type            │
-│                  │   ├─ 📁 RENDERS              │ Content/source       │
-│                  │   ├─ 📁 ASSETS               │ Encoding             │
-│                  │   └─ 📄 {{project_name}}.mxp │ Collision behavior   │
-├──────────────────┴──────────────────────────────┴──────────────────────┤
-│ Validation / preview / status                                         │
-└────────────────────────────────────────────────────────────────────────┘
+┌────────────────────┬──────────────────────────────┬──────────────────────┐
+│ Templates          │ Project Structure            │ Selected Item        │
+│                    │                              │                      │
+│ Max Project     [✓]│ 📁 {{project_name}}          │ Name                 │
+│ Photogrammetry  [✓]│   ├─ 📁 SCENES               │ Node type            │
+│ Generic 3D      [ ]│   ├─ 📁 RENDERS              │ Content/source       │
+│                    │   ├─ 📁 ASSETS               │ Encoding             │
+│                    │   └─ 📄 {{project_name}}.mxp │ Collision behavior   │
+│ Unsaved changes    │                              │                      │
+│ [Save template]    │                              │                      │
+├────────────────────┴──────────────────────────────┴──────────────────────┤
+│ Validation / status                                      [Test template]│
+└──────────────────────────────────────────────────────────────────────────┘
 ```
+
+The template list owns selection, Explorer registration, dirty state, and saving. The structure pane owns hierarchy editing. The selected-item pane owns properties and text contents. This separation keeps template-level actions close to the template they affect.
 
 ### 9.2 Template-library operations
 
@@ -285,7 +293,6 @@ A future native extension must perform no template generation inside Explorer's 
 ### 9.3 Structure-tree operations
 
 - Add folder.
-- Add empty file.
 - Add text file.
 - Attach an existing file.
 - Rename inline.
@@ -305,6 +312,9 @@ Text files should have an integrated plain-text editor with:
 - Encoding selection.
 - Line-ending selection.
 - A resolved preview.
+- An `Import contents...` action for loading an older editable text file.
+
+`Add text file...` creates a token-aware file with empty content and immediately enters inline rename mode; it does not force a `.txt` extension. `Attach existing file...` copies a selected file verbatim and is the path for binary or intentionally immutable content.
 
 Syntax highlighting is optional and not required for the initial release.
 
@@ -318,9 +328,11 @@ The editor provides:
 
 - Continuous structural validation.
 - A list of warnings and errors.
-- A preview using a configurable sample folder name and path.
-- A `Test Generate` action that creates the project in a temporary location and shows the result.
+- A single `Test template...` workflow that first shows resolved names, paths, contents, and collision warnings using a configurable sample folder.
+- An optional second step in that workflow that generates a disposable project in a temporary location for inspection.
 - Clear distinction between blocking errors and advisory warnings.
+
+The editor follows the current Windows appearance by default. Settings may override this with explicit Light or Dark modes. All three modes are initial-release requirements.
 
 ## 10. Template model
 
@@ -386,7 +398,6 @@ The persisted top-level shape is:
 | Node type | Purpose |
 | --- | --- |
 | `folder` | Creates a directory and contains child nodes. |
-| `emptyFile` | Creates a zero-length file. |
 | `textFile` | Creates a text file from inline templated content. |
 | `assetFile` | Copies an attached source file into the project. |
 
@@ -945,7 +956,6 @@ Questions marked **Baseline** should be answered before implementation begins. O
 | Q-011 | Should Explorer submenu order be manually configurable? | Yes. | Milestone 3 |
 | Q-012 | Should generation logs be written on every successful run? | Keep a small structured log with bounded retention. | Milestone 2 |
 | Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Decide through a small packaging spike. | Milestone 5 |
-| Q-014 | Should the editor support dark mode in its first release? | Design theme resources correctly, but do not let dark mode block core delivery. | Milestone 3 |
 | Q-015 | Should imported folders include hidden/system files by default? | Exclude by default and offer an explicit option. | Milestone 3 |
 
 ## 24. Risks and mitigations
@@ -993,11 +1003,13 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Require `.projectID.json` for every scaffolded project and hide it with the Windows Hidden attribute. | Consistent identity supports future indexing while keeping normal project roots visually clean. |
 | 2026-08-24 | Permit template reruns only when the existing metadata names the same template ID. | Idempotent repair is useful, but applying an unrelated structure to an identified project is unsafe without an explicit workflow. |
 | 2026-08-24 | Skip existing files by default and reuse existing folders. | This preserves idempotence and protects user-owned changes during repeated generation. |
-| 2026-08-24 | Support folder, empty-file, templated-text-file, and attached-asset nodes initially. | These node types cover generic project structures and binary starter assets without specialized generators or executable hooks. |
+| 2026-08-24 | Support folder, templated-text-file, and attached-asset nodes initially. | An empty text file already covers zero-length output, while attached assets cover binary content; a fourth empty-file concept would duplicate editor and engine behavior. |
 | 2026-08-24 | Install per user under `%LOCALAPPDATA%\Programs` and keep templates/settings in non-roaming `%LOCALAPPDATA%`. | This matches the per-user Explorer registration model, avoids UAC, simplifies updates, and prevents large attached assets from roaming with a Windows profile. |
 | 2026-08-24 | Approve design baseline version 1.0 for implementation. | The product workflow, platform, identity contract, safety defaults, storage model, and initial scope have been reviewed and accepted. |
 | 2026-08-24 | Approve JSON contract version 1 and design revision 1.1. | Strict schemas, stable identities, separated local Explorer state, deterministic variables, and explicit file behavior provide a testable implementation contract. |
 | 2026-08-24 | Position Project Scaffolder as artist-first but keep its engine and editor generic. | The primary user receives excellent 3ds Max and photogrammetry workflows while the same folder, text, asset, and variable model remains useful across other DCC and non-art projects. |
+| 2026-08-24 | Confirm the three-pane editor concept and refine template-level controls. | Explorer registration belongs on each template row, saving belongs in the template pane, file creation should be concise, and testing should use one clearly named workflow. |
+| 2026-08-24 | Follow the Windows theme by default with Light and Dark overrides. | The editor should feel native on the user's system while retaining an explicit accessibility and preference choice. |
 
 ## 27. Authoritative references
 

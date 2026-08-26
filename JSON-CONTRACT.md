@@ -125,19 +125,7 @@ Every node has a stable UUIDv7 `nodeId`.
 - Folder nodes do not have a collision property.
 - A file occupying the required directory path is a blocking conflict.
 
-### 4.6 Empty-file node
-
-```json
-{
-  "nodeId": "01993a6d-0002-7a10-8a01-000000000002",
-  "type": "emptyFile",
-  "name": ".gitkeep"
-}
-```
-
-`collision` is optional. When absent, the template's `defaultFileCollision` applies.
-
-### 4.7 Text-file node
+### 4.6 Text-file node
 
 ```json
 {
@@ -166,7 +154,7 @@ Before encoding, the generator normalizes all line endings in `content` to the c
 
 `collision` is optional and inherits from `defaultFileCollision` when absent.
 
-### 4.8 Asset-file node
+### 4.7 Asset-file node
 
 ```json
 {

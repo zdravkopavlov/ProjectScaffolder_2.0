@@ -80,9 +80,6 @@
           "$ref": "#/$defs/folderNode"
         },
         {
-          "$ref": "#/$defs/emptyFileNode"
-        },
-        {
           "$ref": "#/$defs/textFileNode"
         },
         {
@@ -114,29 +111,6 @@
           "items": {
             "$ref": "#/$defs/node"
           }
-        }
-      }
-    },
-    "emptyFileNode": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "nodeId",
-        "type",
-        "name"
-      ],
-      "properties": {
-        "nodeId": {
-          "$ref": "#/$defs/uuidV7"
-        },
-        "type": {
-          "const": "emptyFile"
-        },
-        "name": {
-          "$ref": "#/$defs/nodeName"
-        },
-        "collision": {
-          "$ref": "#/$defs/fileCollision"
         }
       }
     },
