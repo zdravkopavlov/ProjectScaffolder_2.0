@@ -39,4 +39,23 @@ public sealed record GenerationContext
             UserName = userName ?? Environment.UserName,
         };
     }
+
+    public static GenerationContext CreateExisting(
+        string targetPath,
+        Guid projectId,
+        DateTimeOffset createdAtUtc,
+        string? userName = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
+        string canonicalPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(targetPath));
+
+        return new GenerationContext
+        {
+            ProjectName = new DirectoryInfo(canonicalPath).Name,
+            ProjectPath = canonicalPath,
+            ProjectId = projectId,
+            CreatedAtUtc = createdAtUtc.ToUniversalTime(),
+            UserName = userName ?? Environment.UserName,
+        };
+    }
 }

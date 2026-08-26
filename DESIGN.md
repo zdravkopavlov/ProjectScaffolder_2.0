@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.4 |
+| Document version | 1.5 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -148,6 +148,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-030 | Explorer registration is toggled directly on each template row and applies immediately; it is not part of the template's unsaved document state. | Confirmed |
 | D-031 | Template saving belongs in the template-list footer with a visible dirty-state indicator and `Ctrl+S` support. | Confirmed |
 | D-032 | The editor exposes one clearly named `Test template...` workflow instead of separate ambiguous Preview and Test Generate buttons. | Confirmed |
+| D-033 | The runner writes a compact structured log for successful and failed runs, retaining at most 100 files and 30 days. | Confirmed |
 
 ## 7. User workflows
 
@@ -700,6 +701,14 @@ Core must not depend on WPF, WinForms, Registry APIs, or installer technology. T
 - The runner returns meaningful process exit codes for diagnostics even though Explorer does not display them.
 - Registry commands invoke executables directly, never through PowerShell or `cmd.exe`.
 
+The version 1 runner command contract is:
+
+```text
+ProjectScaffolder.Runner.exe --template-id <canonical UUIDv7> --target <existing folder>
+```
+
+`--templates-root` and `--logs-root` are diagnostic/test overrides. `--no-ui` suppresses the failure dialog for automated testing. Exit codes are stable for automation and diagnostics: `0` success, `2` invalid arguments, `3` missing template, `4` invalid template, `5` target conflict, `6` generation failure, `7` incomplete rollback, and `10` unexpected failure.
+
 ## 16. Storage
 
 ### 16.1 Confirmed locations
@@ -788,7 +797,7 @@ Logs should include:
 - Created, skipped, overwritten, and failed counts.
 - Detailed exception information on failure.
 
-Logs must not contain file contents or unnecessary personal information. A retention policy is an open decision.
+Logs must not contain file contents or unnecessary personal information. The runner writes one structured JSON log for every successful or failed invocation and retains at most the newest 100 files and files no older than 30 days. Retention cleanup is best-effort and never converts successful generation into failure.
 
 ## 19. Testing strategy
 
@@ -894,12 +903,12 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 
 ### Milestone 2 — Generation runner
 
-- [ ] Implement filesystem generation.
-- [ ] Implement `.projectID.json` behavior.
-- [ ] Implement operation journaling and rollback.
-- [ ] Implement silent success and failure dialog.
-- [ ] Implement diagnostic logging.
-- [ ] Add filesystem integration tests.
+- [x] Implement filesystem generation.
+- [x] Implement `.projectID.json` behavior.
+- [x] Implement operation journaling and rollback.
+- [x] Implement silent success and failure dialog.
+- [x] Implement diagnostic logging.
+- [x] Add filesystem integration tests.
 
 ### Milestone 3 — Template editor
 
@@ -954,7 +963,6 @@ Questions marked **Baseline** should be answered before implementation begins. O
 | --- | --- | --- | --- |
 | Q-010 | What package extension should exported templates use? | Choose a product-specific ZIP-based extension after naming is final. | Milestone 3 |
 | Q-011 | Should Explorer submenu order be manually configurable? | Yes. | Milestone 3 |
-| Q-012 | Should generation logs be written on every successful run? | Keep a small structured log with bounded retention. | Milestone 2 |
 | Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Decide through a small packaging spike. | Milestone 5 |
 | Q-015 | Should imported folders include hidden/system files by default? | Exclude by default and offer an explicit option. | Milestone 3 |
 
@@ -1011,6 +1019,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Confirm the three-pane editor concept and refine template-level controls. | Explorer registration belongs on each template row, saving belongs in the template pane, file creation should be concise, and testing should use one clearly named workflow. |
 | 2026-08-24 | Follow the Windows theme by default with Light and Dark overrides. | The editor should feel native on the user's system while retaining an explicit accessibility and preference choice. |
 | 2026-08-24 | Complete the Milestone 1 Core foundation on .NET 10. | Strict runtime contracts, semantic validation, deterministic variables, contained output planning, asset verification, collision preflight, encoding, and atomic persistence establish a testable safety boundary before filesystem generation or UI work. |
+| 2026-08-24 | Complete the Milestone 2 generation runner and retain bounded logs for all invocations. | The consoleless runner now applies validated plans transactionally, creates stable hidden project identity, rolls back conservatively, stays silent on success, reports failures clearly, and preserves enough structured diagnostics without unbounded storage growth. |
 
 ## 27. Authoritative references
 
