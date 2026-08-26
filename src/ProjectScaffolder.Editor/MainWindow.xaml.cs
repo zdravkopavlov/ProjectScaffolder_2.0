@@ -41,6 +41,28 @@ public partial class MainWindow : Window
         ThemeManager.ApplyWindowChrome(this);
     }
 
+    private async void RemoveTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        TemplateListItemViewModel? item = ViewModel.SelectedListItem;
+        if (item is null)
+        {
+            return;
+        }
+
+        string detail = item.Editor?.IsNew == true
+            ? "This unsaved template will be discarded."
+            : "Its saved package will be moved to Project Scaffolder's Trash folder so it remains recoverable.";
+        MessageBoxResult result = MessageBox.Show(
+            $"Remove '{item.DisplayName.TrimEnd(' ', '*')}' from Project Scaffolder?\n\n{detail}",
+            "Remove template",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (result == MessageBoxResult.Yes)
+        {
+            _ = await ViewModel.RemoveSelectedTemplateAsync().ConfigureAwait(true);
+        }
+    }
+
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (closeApproved || !ViewModel.Templates.Any(item => item.Editor?.IsDirty == true))

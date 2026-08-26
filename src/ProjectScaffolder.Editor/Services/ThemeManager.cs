@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -20,11 +21,18 @@ internal static partial class ThemeManager
     {
         IsDark = preference == ThemePreference.Dark ||
             (preference == ThemePreference.System && SystemUsesDarkTheme());
-        ResourceDictionary resources = Application.Current.Resources.MergedDictionaries[0];
-        resources.MergedDictionaries[0] = new ResourceDictionary
+        Collection<ResourceDictionary> dictionaries = Application.Current.Resources.MergedDictionaries;
+        ResourceDictionary? previousTheme = dictionaries.FirstOrDefault(dictionary =>
+            dictionary.Source?.OriginalString is "Themes/Dark.xaml" or "Themes/Light.xaml");
+        if (previousTheme is not null)
+        {
+            dictionaries.Remove(previousTheme);
+        }
+
+        dictionaries.Add(new ResourceDictionary
         {
             Source = new Uri(IsDark ? "Themes/Dark.xaml" : "Themes/Light.xaml", UriKind.Relative),
-        };
+        });
     }
 
     public static void ApplyWindowChrome(Window window)

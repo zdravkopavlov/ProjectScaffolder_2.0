@@ -40,6 +40,27 @@ public sealed class TemplateLibraryStoreTests
         Assert.NotNull(damaged.ErrorMessage);
     }
 
+    [Fact]
+    public async Task RemovalMovesPackageToRecoverableTrashAndUpdatesLibrary()
+    {
+        using TestDataRoot root = new();
+        TemplateLibraryStore store = new(new EditorPaths(root.Path));
+        TemplateDocument template = CreateTemplate();
+        await store.LoadAsync();
+        await store.SaveTemplateAsync(template);
+        await store.SetExplorerEnabledAsync(template.TemplateId, true);
+
+        string? trashPath = await store.RemoveTemplateAsync(template.TemplateId);
+
+        Assert.NotNull(trashPath);
+        Assert.True(Directory.Exists(trashPath));
+        Assert.True(File.Exists(System.IO.Path.Combine(trashPath, "template.json")));
+        Assert.False(Directory.Exists(System.IO.Path.Combine(root.Path, "Templates", template.TemplateId.ToString("D"))));
+        LoadedTemplateLibrary reloaded = await new TemplateLibraryStore(new EditorPaths(root.Path)).LoadAsync();
+        Assert.DoesNotContain(reloaded.Templates, item => item.TemplateId == template.TemplateId);
+        Assert.DoesNotContain(template.TemplateId, reloaded.ExplorerTemplateIds);
+    }
+
     private static TemplateDocument CreateTemplate()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;

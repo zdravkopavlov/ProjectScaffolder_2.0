@@ -115,6 +115,43 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
         await SaveLibraryAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<string?> RemoveTemplateAsync(Guid templateId, CancellationToken cancellationToken = default)
+    {
+        string sourceDirectory = Path.Combine(paths.TemplatesRoot, templateId.ToString("D"));
+        string? trashDirectory = null;
+        if (Directory.Exists(sourceDirectory))
+        {
+            Directory.CreateDirectory(paths.TrashRoot);
+            trashDirectory = Path.Combine(
+                paths.TrashRoot,
+                $"{templateId:D}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Guid.NewGuid():N}");
+            Directory.Move(sourceDirectory, trashDirectory);
+        }
+
+        TemplateLibraryDocument previousLibrary = library;
+        library = library with
+        {
+            TemplateOrder = library.TemplateOrder.Where(id => id != templateId).ToArray(),
+            ExplorerTemplateIds = library.ExplorerTemplateIds.Where(id => id != templateId).ToArray(),
+        };
+
+        try
+        {
+            await SaveLibraryAsync(cancellationToken).ConfigureAwait(false);
+            return trashDirectory;
+        }
+        catch
+        {
+            library = previousLibrary;
+            if (trashDirectory is not null && Directory.Exists(trashDirectory) && !Directory.Exists(sourceDirectory))
+            {
+                Directory.Move(trashDirectory, sourceDirectory);
+            }
+
+            throw;
+        }
+    }
+
     private async Task SaveLibraryAsync(CancellationToken cancellationToken) =>
         await AtomicJsonFile.SaveAsync(paths.LibraryPath, ContractJson.Serialize(library), false, cancellationToken).ConfigureAwait(false);
 

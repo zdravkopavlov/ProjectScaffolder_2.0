@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.6 |
+| Document version | 1.7 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -150,6 +150,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-032 | The editor exposes one clearly named `Test template...` workflow instead of separate ambiguous Preview and Test Generate buttons. | Confirmed |
 | D-033 | The runner writes a compact structured log for successful and failed runs, retaining at most 100 files and 30 days. | Confirmed |
 | D-034 | The editor implementation uses WPF with an editor-local mutable view-model layer; Core contracts remain UI-independent and immutable. | Confirmed |
+| D-035 | Removing a saved template moves its complete package into an application-owned Trash folder instead of permanently deleting it. | Confirmed |
 
 ## 7. User workflows
 
@@ -719,6 +720,7 @@ ProjectScaffolder.Runner.exe --template-id <canonical UUIDv7> --target <existing
 | Installed binaries | `%LOCALAPPDATA%\Programs\ProjectScaffolder` |
 | User templates | `%LOCALAPPDATA%\ProjectScaffolder\Templates` |
 | Application settings | `%LOCALAPPDATA%\ProjectScaffolder\Settings` |
+| Removed template recovery | `%LOCALAPPDATA%\ProjectScaffolder\Trash` |
 | Logs | `%LOCALAPPDATA%\ProjectScaffolder\Logs` |
 | Disposable caches | `%LOCALAPPDATA%\ProjectScaffolder\Cache` |
 | Exported template packages | User-selected location |
@@ -932,9 +934,10 @@ Current verified editor slice:
 - [x] Continuously validate both contract rules and resolved output-path conflicts.
 - [x] Save valid templates atomically with dirty-state tracking and `Ctrl+S`.
 - [x] Preserve independent dirty sessions while switching templates and protect all dirty sessions on close.
+- [x] Remove templates with confirmation and retain saved packages in the recoverable application Trash folder.
 - [ ] Add attached-file management and asset-safe duplication.
 - [ ] Add drag-and-drop, clipboard operations, and in-session delete undo.
-- [ ] Complete library deletion, ordering, folder import, and template package import/export.
+- [ ] Complete library ordering, folder import, and template package import/export.
 - [ ] Add variable insertion, search/replace, resolved preview, and disposable test generation.
 
 ### Milestone 4 — Classic Explorer integration
@@ -1037,6 +1040,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Complete the Milestone 1 Core foundation on .NET 10. | Strict runtime contracts, semantic validation, deterministic variables, contained output planning, asset verification, collision preflight, encoding, and atomic persistence establish a testable safety boundary before filesystem generation or UI work. |
 | 2026-08-24 | Complete the Milestone 2 generation runner and retain bounded logs for all invocations. | The consoleless runner now applies validated plans transactionally, creates stable hidden project identity, rolls back conservatively, stays silent on success, reports failures clearly, and preserves enough structured diagnostics without unbounded storage growth. |
 | 2026-08-24 | Confirm WPF and an editor-local mutable view-model layer for the template editor. | WPF implements the approved Windows-native three-pane experience, while converting to strict immutable Core contracts only for validation and persistence keeps UI state out of the generation engine. |
+| 2026-08-24 | Make template removal recoverable through an application Trash folder. | Templates may contain valuable attached assets; moving the complete package out of the active library provides immediate removal without making an accidental confirmation permanently destructive. |
 
 ## 27. Authoritative references
 

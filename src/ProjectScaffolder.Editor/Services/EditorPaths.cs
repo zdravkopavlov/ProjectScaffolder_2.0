@@ -8,6 +8,8 @@ internal sealed record EditorPaths(string DataRoot)
 
     public string SettingsRoot => Path.Combine(DataRoot, "Settings");
 
+    public string TrashRoot => Path.Combine(DataRoot, "Trash");
+
     public string LibraryPath => Path.Combine(SettingsRoot, "template-library.json");
 
     public string SeedMarkerPath => Path.Combine(SettingsRoot, "bundled-templates-v1.seeded");

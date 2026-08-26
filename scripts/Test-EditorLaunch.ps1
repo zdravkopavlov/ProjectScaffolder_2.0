@@ -16,11 +16,13 @@ if (-not $testRoot.StartsWith($testPrefix, [StringComparison]::OrdinalIgnoreCase
 
 $process = $null
 try {
-    $process = Start-Process -FilePath $editorExe -ArgumentList @('--data-root', $testRoot) -WindowStyle Hidden -PassThru
-    Start-Sleep -Seconds 2
-    $process.Refresh()
-    if ($process.HasExited) {
-        throw "The editor exited during startup with code $($process.ExitCode)."
+    $process = Start-Process -FilePath $editorExe -ArgumentList @('--data-root', $testRoot, '--smoke-select-first') -WindowStyle Hidden -PassThru
+    if (-not $process.WaitForExit(10000)) {
+        throw 'The editor did not complete its selection smoke test within ten seconds.'
+    }
+
+    if ($process.ExitCode -ne 0) {
+        throw "The editor selection smoke test exited with code $($process.ExitCode)."
     }
 
     $seededTemplate = Join-Path $testRoot 'Templates\01993a6c-f686-7e81-b530-35940e1b4072\template.json'

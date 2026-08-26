@@ -25,9 +25,10 @@
         <Border Grid.Row="0" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="12,8">
                 <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding NewTemplateCommand}" Content="＋  New" />
-                    <Button IsEnabled="False" Content="⇥  Import folder" ToolTip="Folder import is the next editor slice." />
-                    <Button Command="{Binding DuplicateTemplateCommand}" Content="▣  Duplicate" />
+                    <Button Command="{Binding NewTemplateCommand}" Content="New" />
+                    <Button IsEnabled="False" Content="Import folder" ToolTip="Folder import is the next editor slice." />
+                    <Button Command="{Binding DuplicateTemplateCommand}" Content="Duplicate" />
+                    <Button Click="RemoveTemplate_Click" Content="Remove" />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <TextBlock Margin="0,0,8,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="Theme" />
@@ -89,7 +90,7 @@
                             <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Template name" />
                             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Margin="0,9,0,7" Foreground="{DynamicResource WarningBrush}" Text="{Binding DirtyStatus}" />
-                            <Button Margin="0" Command="{Binding DataContext.SaveTemplateCommand, RelativeSource={RelativeSource AncestorType=Window}}" Content="▣  Save template" />
+                            <Button Margin="0" Command="{Binding DataContext.SaveTemplateCommand, RelativeSource={RelativeSource AncestorType=Window}}" Content="Save template" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -109,11 +110,11 @@
                         </Grid>
                     </Border>
                     <StackPanel Grid.Row="1" Margin="10,7" Orientation="Horizontal">
-                        <Button Command="{Binding AddFolderCommand}" Content="□  Folder" />
-                        <Button Command="{Binding AddTextFileCommand}" Content="▤  Add text file" />
-                        <Button Command="{Binding MoveNodeUpCommand}" Content="↑" ToolTip="Move up" />
-                        <Button Command="{Binding MoveNodeDownCommand}" Content="↓" ToolTip="Move down" />
-                        <Button Command="{Binding DeleteNodeCommand}" Content="×" ToolTip="Delete selected item" />
+                        <Button Command="{Binding AddFolderCommand}" Content="Folder" />
+                        <Button Command="{Binding AddTextFileCommand}" Content="Add text file" />
+                        <Button Command="{Binding MoveNodeUpCommand}" Content="Move up" />
+                        <Button Command="{Binding MoveNodeDownCommand}" Content="Move down" />
+                        <Button Command="{Binding DeleteNodeCommand}" Content="Delete item" />
                     </StackPanel>
                     <Grid Grid.Row="2" Margin="10,0,10,10">
                         <Grid.RowDefinitions>
@@ -152,7 +153,7 @@
                             <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Name" />
                             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Type" />
-                            <TextBox IsReadOnly="True" Text="{Binding TypeLabel}" />
+                            <TextBox IsReadOnly="True" Text="{Binding TypeLabel, Mode=OneWay}" />
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
                                 <ComboBox ItemsSource="{Binding DataContext.FileCollisionPolicies, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Collision}" />
@@ -183,7 +184,7 @@
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <TextBlock Margin="0,0,12,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding StatusMessage}" />
-                    <Button Margin="0" IsEnabled="False" Content="♙  Test template..." ToolTip="Resolved preview is coming in the next editor slice." />
+                    <Button Margin="0" IsEnabled="False" Content="Test template..." ToolTip="Resolved preview is coming in the next editor slice." />
                 </StackPanel>
             </Grid>
         </Border>

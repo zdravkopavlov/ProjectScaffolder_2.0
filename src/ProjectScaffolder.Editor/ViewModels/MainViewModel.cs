@@ -173,6 +173,36 @@ internal sealed class MainViewModel : ObservableObject
         return true;
     }
 
+    public async Task<bool> RemoveSelectedTemplateAsync()
+    {
+        TemplateListItemViewModel? item = SelectedListItem;
+        if (item is null)
+        {
+            return false;
+        }
+
+        int index = Templates.IndexOf(item);
+        try
+        {
+            string? trashPath = item.Editor?.IsNew == true
+                ? null
+                : await store.RemoveTemplateAsync(item.TemplateId).ConfigureAwait(true);
+            Templates.Remove(item);
+            SelectedListItem = Templates.Count == 0
+                ? null
+                : Templates[Math.Min(index, Templates.Count - 1)];
+            StatusMessage = trashPath is null
+                ? "Unsaved template removed."
+                : "Template removed and its package moved to the application Trash folder.";
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusMessage = $"Could not remove template: {exception.Message}";
+            return false;
+        }
+    }
+
     private void NewTemplate()
     {
         TemplateEditorViewModel editor = TemplateEditorViewModel.CreateNew();
