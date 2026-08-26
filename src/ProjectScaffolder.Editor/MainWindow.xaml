@@ -10,10 +10,39 @@
         Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <HierarchicalDataTemplate DataType="{x:Type vm:EditorNodeViewModel}" ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal" Margin="2,4">
+            <Grid Margin="2,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="23" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <TextBlock Width="23" Text="{Binding Icon}" Foreground="{DynamicResource SecondaryTextBrush}" />
-                <TextBlock Text="{Binding Name}" />
-            </StackPanel>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding Name}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBox Grid.Column="1" MinWidth="150" Padding="3,1" Text="{Binding Name, Mode=OneWay}"
+                         IsVisibleChanged="InlineName_IsVisibleChanged" LostKeyboardFocus="InlineName_LostKeyboardFocus"
+                         PreviewKeyDown="InlineName_PreviewKeyDown">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+            </Grid>
         </HierarchicalDataTemplate>
     </Window.Resources>
     <Grid Background="{DynamicResource WindowBackgroundBrush}">
@@ -114,6 +143,7 @@
                         <Button Command="{Binding AddTextFileCommand}" Content="Add text file" />
                         <Button Command="{Binding MoveNodeUpCommand}" Content="Move up" />
                         <Button Command="{Binding MoveNodeDownCommand}" Content="Move down" />
+                        <Button Command="{Binding RenameNodeCommand}" Content="Rename" ToolTip="Rename the selected item (F2)." />
                         <Button Command="{Binding DeleteNodeCommand}" Content="Delete item" />
                     </StackPanel>
                     <Grid Grid.Row="2" Margin="10,0,10,10">
@@ -121,8 +151,9 @@
                             <RowDefinition Height="42" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Button Click="ProjectRoot_Click" Margin="0" Padding="7,0" BorderThickness="0,0,0,1"
+                        <Button Click="ProjectRoot_Click" Margin="0" Padding="7,0" BorderThickness="0,0,0,1" AllowDrop="True"
                                 BorderBrush="{DynamicResource BorderBrush}" HorizontalContentAlignment="Stretch"
+                                DragOver="ProjectRoot_DragOver" Drop="ProjectRoot_Drop"
                                 ToolTip="Select the project root to add first-level folders and files.">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -141,7 +172,9 @@
                                 <TextBlock HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Text="target folder" />
                             </Grid>
                         </Button>
-                        <TreeView x:Name="StructureTree" Grid.Row="1" Padding="9" ItemsSource="{Binding SelectedTemplate.Nodes}"
+                        <TreeView x:Name="StructureTree" Grid.Row="1" Padding="9" ItemsSource="{Binding SelectedTemplate.Nodes}" AllowDrop="True"
+                                  PreviewMouseLeftButtonDown="StructureTree_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="StructureTree_PreviewMouseMove" DragOver="StructureTree_DragOver" Drop="StructureTree_Drop"
                                   SelectedItemChanged="StructureTree_SelectedItemChanged" />
                     </Grid>
                 </Grid>
@@ -163,8 +196,6 @@
                         <StackPanel DataContext="{Binding SelectedNode}">
                             <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Name" />
                             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Type" />
-                            <TextBox IsReadOnly="True" Text="{Binding TypeLabel, Mode=OneWay}" />
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
                                 <ComboBox DisplayMemberPath="Label"

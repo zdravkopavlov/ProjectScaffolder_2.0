@@ -17,6 +17,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
     private TextFileEncodingKind encoding;
     private LineEndingKind lineEndings;
     private string content;
+    private bool isEditing;
 
     private EditorNodeViewModel(
         Guid nodeId,
@@ -135,12 +136,24 @@ internal sealed class EditorNodeViewModel : ObservableObject
 
     public bool IsFile => Kind != EditorNodeKind.Folder;
 
+    public bool IsEditing
+    {
+        get => isEditing;
+        set => SetProperty(ref isEditing, value);
+    }
+
+    public void BeginRename() => IsEditing = true;
+
+    public void EndRename() => IsEditing = false;
+
     public void AddChild(EditorNodeViewModel child)
     {
-        child.Parent = this;
+        child.SetParent(this);
         Children.Add(child);
         child.Changed += ChildChanged;
     }
+
+    internal void SetParent(EditorNodeViewModel? parent) => Parent = parent;
 
     public TemplateNode ToContract() => Kind switch
     {

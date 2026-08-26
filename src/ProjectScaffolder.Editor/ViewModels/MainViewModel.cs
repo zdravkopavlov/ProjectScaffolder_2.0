@@ -22,6 +22,7 @@ internal sealed class MainViewModel : ObservableObject
         AddFolderCommand = new RelayCommand(AddFolder, () => SelectedTemplate is not null);
         AddTextFileCommand = new RelayCommand(AddTextFile, () => SelectedTemplate is not null);
         DeleteNodeCommand = new RelayCommand(DeleteNode, () => SelectedTemplate is not null && SelectedNode is not null);
+        RenameNodeCommand = new RelayCommand(RenameNode, () => SelectedNode is not null);
         MoveNodeUpCommand = new RelayCommand(() => MoveNode(-1), CanMoveNodeUp);
         MoveNodeDownCommand = new RelayCommand(() => MoveNode(1), CanMoveNodeDown);
     }
@@ -61,6 +62,8 @@ internal sealed class MainViewModel : ObservableObject
     public RelayCommand AddTextFileCommand { get; }
 
     public RelayCommand DeleteNodeCommand { get; }
+
+    public RelayCommand RenameNodeCommand { get; }
 
     public RelayCommand MoveNodeUpCommand { get; }
 
@@ -105,6 +108,54 @@ internal sealed class MainViewModel : ObservableObject
     public bool HasSelectedNode => SelectedNode is not null;
 
     public bool IsProjectRootSelected => SelectedNode is null;
+
+    public bool CanMoveNode(EditorNodeViewModel node, EditorNodeViewModel? newParent)
+    {
+        if (SelectedTemplate is null || (newParent is not null && newParent.Kind != EditorNodeKind.Folder))
+        {
+            return false;
+        }
+
+        for (EditorNodeViewModel? ancestor = newParent; ancestor is not null; ancestor = ancestor.Parent)
+        {
+            if (ReferenceEquals(ancestor, node))
+            {
+                return false;
+            }
+        }
+
+        return Flatten(SelectedTemplate.Nodes).Contains(node);
+    }
+
+    public bool MoveNode(EditorNodeViewModel node, EditorNodeViewModel? newParent, int insertionIndex)
+    {
+        TemplateEditorViewModel? template = SelectedTemplate;
+        if (template is null || !CanMoveNode(node, newParent))
+        {
+            return false;
+        }
+
+        ObservableCollection<EditorNodeViewModel> oldSiblings = node.Parent?.Children ?? template.Nodes;
+        ObservableCollection<EditorNodeViewModel> newSiblings = newParent?.Children ?? template.Nodes;
+        int oldIndex = oldSiblings.IndexOf(node);
+        int targetIndex = Math.Clamp(insertionIndex, 0, newSiblings.Count);
+        if (ReferenceEquals(oldSiblings, newSiblings) && oldIndex < targetIndex)
+        {
+            targetIndex--;
+        }
+
+        if (ReferenceEquals(oldSiblings, newSiblings) && oldIndex == targetIndex)
+        {
+            return false;
+        }
+
+        oldSiblings.RemoveAt(oldIndex);
+        node.SetParent(newParent);
+        newSiblings.Insert(targetIndex, node);
+        template.NotifyStructureChanged();
+        SelectedNode = node;
+        return true;
+    }
 
     public string StatusMessage
     {
@@ -305,6 +356,8 @@ internal sealed class MainViewModel : ObservableObject
         template.NotifyStructureChanged();
     }
 
+    private void RenameNode() => SelectedNode?.BeginRename();
+
     private void MoveNode(int offset)
     {
         EditorNodeViewModel node = SelectedNode!;
@@ -403,7 +456,20 @@ internal sealed class MainViewModel : ObservableObject
         AddFolderCommand.NotifyCanExecuteChanged();
         AddTextFileCommand.NotifyCanExecuteChanged();
         DeleteNodeCommand.NotifyCanExecuteChanged();
+        RenameNodeCommand.NotifyCanExecuteChanged();
         MoveNodeUpCommand.NotifyCanExecuteChanged();
         MoveNodeDownCommand.NotifyCanExecuteChanged();
+    }
+
+    private static IEnumerable<EditorNodeViewModel> Flatten(IEnumerable<EditorNodeViewModel> nodes)
+    {
+        foreach (EditorNodeViewModel node in nodes)
+        {
+            yield return node;
+            foreach (EditorNodeViewModel child in Flatten(node.Children))
+            {
+                yield return child;
+            }
+        }
     }
 }
