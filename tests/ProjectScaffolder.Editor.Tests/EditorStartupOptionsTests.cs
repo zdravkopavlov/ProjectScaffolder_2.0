@@ -13,6 +13,7 @@ public sealed class EditorStartupOptionsTests
         EditorStartupOptions options = EditorStartupOptions.Parse(["--smoke-select-first", "--data-root", path]);
 
         Assert.True(options.SmokeSelectFirstNode);
+        Assert.False(options.EnableExplorerRegistration);
         Assert.Equal(Path.GetFullPath(path), options.Paths.DataRoot);
     }
 

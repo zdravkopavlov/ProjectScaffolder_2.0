@@ -12,13 +12,15 @@ namespace ProjectScaffolder.Editor.ViewModels;
 internal sealed class MainViewModel : ObservableObject
 {
     private readonly TemplateLibraryStore store;
+    private readonly IExplorerMenuRegistration explorerMenu;
     private TemplateListItemViewModel? selectedListItem;
     private EditorNodeViewModel? selectedNode;
     private string statusMessage = "Loading templates...";
 
-    public MainViewModel(TemplateLibraryStore store)
+    public MainViewModel(TemplateLibraryStore store, IExplorerMenuRegistration? explorerMenu = null)
     {
         this.store = store;
+        this.explorerMenu = explorerMenu ?? new NullExplorerMenuRegistration();
         NewTemplateCommand = new RelayCommand(NewTemplate);
         DuplicateTemplateCommand = new AsyncRelayCommand(DuplicateTemplateAsync, () => SelectedTemplate is not null);
         SaveTemplateCommand = new AsyncRelayCommand(SaveTemplateAsync, () => SelectedTemplate is { IsDirty: true, IsValid: true });
@@ -365,7 +367,8 @@ internal sealed class MainViewModel : ObservableObject
         }
 
         SelectedListItem = Templates.FirstOrDefault(item => !item.HasError) ?? Templates.FirstOrDefault();
-        StatusMessage = Templates.Count == 0 ? "Create your first template." : SelectedTemplate?.ValidationStatus ?? "A damaged template is selected.";
+        string initialStatus = Templates.Count == 0 ? "Create your first template." : SelectedTemplate?.ValidationStatus ?? "A damaged template is selected.";
+        StatusMessage = SynchronizeExplorerMenu() ?? initialStatus;
     }
 
     public async Task<bool> SaveCurrentTemplateAsync()
@@ -386,7 +389,7 @@ internal sealed class MainViewModel : ObservableObject
             TemplateDocument document = SelectedTemplate.CreateSaveDocument();
             await store.SaveTemplateAsync(document).ConfigureAwait(true);
             SelectedTemplate.AcceptSaved(document);
-            StatusMessage = "Template saved.";
+            StatusMessage = SynchronizeExplorerMenu() ?? "Template saved.";
             NotifyCommandStates();
             return true;
         }
@@ -423,7 +426,7 @@ internal sealed class MainViewModel : ObservableObject
             }
         }
 
-        StatusMessage = "All templates saved.";
+        StatusMessage = SynchronizeExplorerMenu() ?? "All templates saved.";
         NotifyCommandStates();
         return true;
     }
@@ -449,6 +452,7 @@ internal sealed class MainViewModel : ObservableObject
             StatusMessage = trashPath is null
                 ? "Unsaved template removed."
                 : "Template removed and its package moved to the application Trash folder.";
+            StatusMessage = SynchronizeExplorerMenu() ?? StatusMessage;
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -621,13 +625,30 @@ internal sealed class MainViewModel : ObservableObject
         try
         {
             await store.SetExplorerEnabledAsync(item.TemplateId, item.IsExplorerEnabled).ConfigureAwait(true);
-            StatusMessage = item.IsExplorerEnabled
-                ? "Template marked for the Explorer menu. Registration arrives in Milestone 4."
-                : "Template removed from the future Explorer menu.";
+            StatusMessage = SynchronizeExplorerMenu() ?? (item.IsExplorerEnabled
+                ? "Template added to the Explorer menu."
+                : "Template removed from the Explorer menu.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             StatusMessage = $"Could not update Explorer state: {exception.Message}";
+        }
+    }
+
+    private string? SynchronizeExplorerMenu()
+    {
+        try
+        {
+            ExplorerMenuTemplate[] enabled = Templates
+                .Where(item => item.IsExplorerEnabled && item.Editor is { IsNew: false })
+                .Select(item => new ExplorerMenuTemplate(item.TemplateId, item.Editor!.Name))
+                .ToArray();
+            _ = explorerMenu.Synchronize(enabled);
+            return null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return $"Explorer menu could not be updated: {exception.Message}";
         }
     }
 

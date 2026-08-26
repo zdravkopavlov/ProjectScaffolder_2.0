@@ -125,7 +125,7 @@
                                     <CheckBox Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                                               IsEnabled="{Binding CanToggleExplorer}"
                                               IsChecked="{Binding IsExplorerEnabled, Mode=TwoWay}"
-                                              ToolTip="Show this template in the Explorer menu (registration is implemented in Milestone 4)." />
+                                              ToolTip="Show or hide this template in the Windows Explorer New Project menu." />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

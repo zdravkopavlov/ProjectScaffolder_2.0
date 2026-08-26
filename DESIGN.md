@@ -945,12 +945,12 @@ Deferred beyond the initial release: clipboard operations, delete undo, manual l
 
 ### Milestone 4 — Classic Explorer integration
 
-- [ ] Implement the stable `New Project` cascade.
-- [ ] Implement background-folder and selected-folder targets.
-- [ ] Implement enabled-template submenu generation.
-- [ ] Implement separator and Editor command.
-- [ ] Implement registration health check and repair.
-- [ ] Verify safe quoting and paths containing spaces.
+- [x] Implement the stable `New Project` cascade.
+- [x] Implement background-folder and selected-folder targets.
+- [x] Implement enabled-template submenu generation.
+- [x] Implement separator and Editor command.
+- [x] Implement registration health check and automatic startup repair.
+- [x] Verify safe quoting and paths containing spaces.
 
 ### Milestone 5 — Installer
 
@@ -1048,6 +1048,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Make `Test template...` a non-mutating resolved preview with an editable sample target path. | Users can verify variable values, output paths, text contents, attachment integrity, and collision outcomes without writing a project. |
 | 2026-08-24 | Keep preview non-mutating and make disposable generation a separate explicit action using the production generator. | This tests the actual filesystem behavior, including unsaved edits and staged assets, while keeping ordinary preview safe; generated workspaces can be opened and are deleted only on explicit request. |
 | 2026-08-24 | Refocus the initial release on defining structures, including files, registering templates, and generating silently from Explorer; defer editor conveniences and disposable generation. | Project Scaffolder is a focused scaffolding utility, not a miniature IDE. This decision supersedes the disposable-generation decision above and moves active work to Explorer integration. |
+| 2026-08-24 | Implement the classic menu as two per-user static cascades maintained by the editor. | Separate background (`%V`) and selected-folder (`%1`) command sets preserve the direct in-place workflow without elevation, COM code, or generation inside Explorer. |
 
 ## 27. Authoritative references
 

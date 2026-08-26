@@ -1,6 +1,6 @@
 namespace ProjectScaffolder.Editor.Services;
 
-internal sealed record EditorStartupOptions(EditorPaths Paths, bool SmokeSelectFirstNode)
+internal sealed record EditorStartupOptions(EditorPaths Paths, bool SmokeSelectFirstNode, bool EnableExplorerRegistration)
 {
     public static EditorStartupOptions Parse(string[] args)
     {
@@ -25,6 +25,6 @@ internal sealed record EditorStartupOptions(EditorPaths Paths, bool SmokeSelectF
         EditorPaths paths = dataRoot is null
             ? EditorPaths.FromArguments([])
             : EditorPaths.FromArguments(["--data-root", dataRoot]);
-        return new EditorStartupOptions(paths, smokeSelect);
+        return new EditorStartupOptions(paths, smokeSelect, dataRoot is null);
     }
 }

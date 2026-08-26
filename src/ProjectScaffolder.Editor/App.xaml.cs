@@ -1,5 +1,6 @@
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -23,7 +24,12 @@ public partial class App : Application
         {
             EditorStartupOptions options = EditorStartupOptions.Parse(e.Args);
             TemplateLibraryStore store = new(options.Paths);
-            MainViewModel viewModel = new(store);
+            IExplorerMenuRegistration explorerMenu = options.EnableExplorerRegistration
+                ? new ExplorerMenuRegistration(
+                    Path.Combine(AppContext.BaseDirectory, "ProjectScaffolder.Editor.exe"),
+                    Path.Combine(AppContext.BaseDirectory, "ProjectScaffolder.Runner.exe"))
+                : new NullExplorerMenuRegistration();
+            MainViewModel viewModel = new(store, explorerMenu);
             await viewModel.InitializeAsync().ConfigureAwait(true);
             MainWindow window = new(viewModel);
             MainWindow = window;
