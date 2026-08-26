@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:ProjectScaffolder.Editor.ViewModels"
         mc:Ignorable="d"
-        Title="Project Scaffolder" Width="1380" Height="790" MinWidth="1040" MinHeight="640"
+        Title="Project Scaffolder" Icon="Assets/ProjectScaffolder.ico" Width="1380" Height="790" MinWidth="1040" MinHeight="640"
         WindowStartupLocation="CenterScreen" SourceInitialized="Window_SourceInitialized"
         Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
@@ -156,14 +156,23 @@
                             <TextBox IsReadOnly="True" Text="{Binding TypeLabel, Mode=OneWay}" />
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
-                                <ComboBox ItemsSource="{Binding DataContext.FileCollisionPolicies, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Collision}" />
-                                <TextBlock Margin="0,5,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" Text="Leave blank to use the template default." />
+                                <ComboBox DisplayMemberPath="Label"
+                                          ItemsSource="{Binding DataContext.FileCollisionChoices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding Collision}"
+                                          SelectedValuePath="Value" />
+                                <TextBlock Margin="0,5,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" Text="Choose Use template default to inherit the template setting." />
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsTextFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Encoding" />
-                                <ComboBox ItemsSource="{Binding DataContext.TextEncodings, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding Encoding}" />
+                                <ComboBox DisplayMemberPath="Label"
+                                          ItemsSource="{Binding DataContext.TextEncodingChoices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding Encoding}"
+                                          SelectedValuePath="Value" />
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Line endings" />
-                                <ComboBox ItemsSource="{Binding DataContext.LineEndings, RelativeSource={RelativeSource AncestorType=Window}}" SelectedItem="{Binding LineEndings}" />
+                                <ComboBox DisplayMemberPath="Label"
+                                          ItemsSource="{Binding DataContext.LineEndingChoices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding LineEndings}"
+                                          SelectedValuePath="Value" />
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Text content" />
                                 <TextBox MinHeight="260" AcceptsReturn="True" AcceptsTab="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"

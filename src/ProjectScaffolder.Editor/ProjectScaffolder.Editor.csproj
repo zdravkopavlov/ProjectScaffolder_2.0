@@ -13,10 +13,13 @@
     <AssemblyName>ProjectScaffolder.Editor</AssemblyName>
     <Version>2.0.0-alpha.1</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets\ProjectScaffolder.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="..\..\examples\3ds-max-template.json" Link="SeedTemplates\3ds-max-template.json" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\ProjectScaffolder.ico" />
+    <None Update="Assets\file-box.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

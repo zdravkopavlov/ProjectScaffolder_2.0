@@ -3,6 +3,7 @@ using System.Data;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
+using ProjectScaffolder.Core.Contracts;
 using ProjectScaffolder.Editor.Services;
 using ProjectScaffolder.Editor.ViewModels;
 
@@ -29,14 +30,21 @@ public partial class App : Application
             window.Show();
             if (options.SmokeSelectFirstNode)
             {
-                TemplateListItemViewModel? item = viewModel.Templates.FirstOrDefault(candidate => candidate.Editor?.Nodes.Count > 0);
-                if (item is null)
+                TemplateListItemViewModel? item = viewModel.Templates.FirstOrDefault(candidate =>
+                    candidate.Editor is not null && FlattenNodes(candidate.Editor.Nodes).Any(node => node.IsTextFile));
+                EditorNodeViewModel? node = item?.Editor is null
+                    ? null
+                    : FlattenNodes(item.Editor.Nodes).FirstOrDefault(candidate => candidate.IsTextFile);
+                if (item is null || node is null)
                 {
-                    throw new InvalidOperationException("The editor smoke test could not find a template node to select.");
+                    throw new InvalidOperationException("The editor smoke test could not find a text-file node to select.");
                 }
 
                 viewModel.SelectedListItem = item;
-                viewModel.SelectedNode = item.Editor!.Nodes[0];
+                viewModel.SelectedNode = node;
+                node.Collision = FileCollisionPolicy.Skip;
+                node.Collision = null;
+                item.Editor!.AcceptSaved(item.Editor.Snapshot());
                 ThemeManager.Apply(ThemePreference.Light);
                 if (TryFindResource("WindowBackgroundBrush") is not SolidColorBrush lightBrush || lightBrush.Color != Color.FromRgb(0xF4, 0xF4, 0xF4))
                 {
@@ -61,6 +69,18 @@ public partial class App : Application
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
+        }
+    }
+
+    private static IEnumerable<EditorNodeViewModel> FlattenNodes(IEnumerable<EditorNodeViewModel> nodes)
+    {
+        foreach (EditorNodeViewModel node in nodes)
+        {
+            yield return node;
+            foreach (EditorNodeViewModel child in FlattenNodes(node.Children))
+            {
+                yield return child;
+            }
         }
     }
 }

@@ -71,6 +71,17 @@ public sealed class TemplateEditorViewModelTests
         Assert.Contains("resolved path conflicts", editor.ValidationSummary, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void FileCollisionOverrideCanReturnToTemplateDefault()
+    {
+        EditorNodeViewModel file = EditorNodeViewModel.CreateTextFile("notes.txt");
+        file.Collision = FileCollisionPolicy.Skip;
+
+        file.Collision = null;
+
+        Assert.Null(file.Collision);
+    }
+
     private static TemplateDocument CreateTemplate()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;

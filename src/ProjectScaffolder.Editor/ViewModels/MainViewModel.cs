@@ -28,11 +28,27 @@ internal sealed class MainViewModel : ObservableObject
 
     public ObservableCollection<TemplateListItemViewModel> Templates { get; } = [];
 
-    public IReadOnlyList<TextFileEncodingKind> TextEncodings { get; } = Enum.GetValues<TextFileEncodingKind>();
+    public IReadOnlyList<ChoiceOption<TextFileEncodingKind>> TextEncodingChoices { get; } =
+    [
+        new(TextFileEncodingKind.Utf8, "UTF-8"),
+        new(TextFileEncodingKind.Utf8Bom, "UTF-8 with BOM"),
+        new(TextFileEncodingKind.Utf16LittleEndian, "UTF-16 little-endian"),
+        new(TextFileEncodingKind.Windows1252, "Windows-1252"),
+    ];
 
-    public IReadOnlyList<LineEndingKind> LineEndings { get; } = Enum.GetValues<LineEndingKind>();
+    public IReadOnlyList<ChoiceOption<LineEndingKind>> LineEndingChoices { get; } =
+    [
+        new(LineEndingKind.CrLf, "Windows (CRLF)"),
+        new(LineEndingKind.Lf, "Unix (LF)"),
+    ];
 
-    public IReadOnlyList<FileCollisionPolicy> FileCollisionPolicies { get; } = Enum.GetValues<FileCollisionPolicy>();
+    public IReadOnlyList<ChoiceOption<FileCollisionPolicy?>> FileCollisionChoices { get; } =
+    [
+        new(null, "Use template default"),
+        new(FileCollisionPolicy.Skip, "Skip"),
+        new(FileCollisionPolicy.Overwrite, "Overwrite"),
+        new(FileCollisionPolicy.Fail, "Fail"),
+    ];
 
     public RelayCommand NewTemplateCommand { get; }
 

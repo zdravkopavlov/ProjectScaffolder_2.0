@@ -1,9 +1,15 @@
 [CmdletBinding()]
-param()
+param(
+    [string]$EditorPath
+)
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$editorExe = Join-Path $repositoryRoot 'src\ProjectScaffolder.Editor\bin\Release\net10.0-windows\ProjectScaffolder.Editor.exe'
+$editorExe = if ([string]::IsNullOrWhiteSpace($EditorPath)) {
+    Join-Path $repositoryRoot 'src\ProjectScaffolder.Editor\bin\Release\net10.0-windows\ProjectScaffolder.Editor.exe'
+} else {
+    [IO.Path]::GetFullPath($EditorPath)
+}
 if (-not (Test-Path -LiteralPath $editorExe -PathType Leaf)) {
     throw 'Build the Release solution before running this launch test.'
 }
