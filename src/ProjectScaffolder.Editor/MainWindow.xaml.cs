@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -21,6 +22,7 @@ public partial class MainWindow : Window
     private EditorNodeViewModel? pendingRenameNode;
     private EditorNodeViewModel? dropTargetNode;
     private bool pointerMoved;
+    private TextBox? variableInsertionTarget;
 
     internal MainWindow(MainViewModel viewModel)
     {
@@ -354,7 +356,12 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Space && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            ShowVariableMenu(textBox, textBox);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
         {
             node.EndRename();
             StructureTree.Focus();
@@ -458,6 +465,61 @@ public partial class MainWindow : Window
         CheckFileExists = true,
         Multiselect = false,
     };
+
+    private void InsertVariable_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button)
+        {
+            ShowVariableMenu(TextContentEditor, button);
+        }
+    }
+
+    private void ShowVariableMenu(TextBox target, UIElement placementTarget)
+    {
+        variableInsertionTarget = target;
+        ContextMenu menu = new()
+        {
+            Placement = PlacementMode.Bottom,
+            PlacementTarget = placementTarget,
+        };
+        foreach (VariableOption variable in ViewModel.VariableChoices)
+        {
+            MenuItem item = new()
+            {
+                Header = $"{variable.Label}    {variable.Token}",
+                ToolTip = variable.Meaning,
+                Tag = variable,
+            };
+            item.Click += VariableMenuItem_Click;
+            menu.Items.Add(item);
+        }
+
+        menu.Closed += (_, _) => variableInsertionTarget = null;
+        menu.IsOpen = true;
+    }
+
+    private void VariableMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: VariableOption variable } || variableInsertionTarget is not TextBox target)
+        {
+            return;
+        }
+
+        int insertionStart = target.SelectionStart;
+        target.SelectedText = variable.Token;
+        target.CaretIndex = insertionStart + variable.Token.Length;
+        target.SelectionLength = 0;
+        target.Focus();
+    }
+
+    private void TestTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        ResolvedPreviewWindow preview = new(ViewModel)
+        {
+            Owner = this,
+        };
+        _ = preview.ShowDialog();
+    }
 
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {

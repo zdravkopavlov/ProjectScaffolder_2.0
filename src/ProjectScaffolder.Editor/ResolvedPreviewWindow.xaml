@@ -1,0 +1,103 @@
+<Window x:Class="ProjectScaffolder.Editor.ResolvedPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Test template — Resolved preview" Icon="Assets/ProjectScaffolder.ico"
+        Width="980" Height="700" MinWidth="780" MinHeight="560"
+        WindowStartupLocation="CenterOwner" SourceInitialized="Window_SourceInitialized">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Border Padding="14" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="Sample project folder" />
+                    <TextBlock Margin="0,3,0,7" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                               Text="Names, paths, variables, contents, and existing-file behavior are resolved without creating anything." />
+                    <TextBox x:Name="TargetPathBox" MinWidth="520" />
+                </StackPanel>
+                <Button Grid.Column="1" Margin="12,25,0,0" VerticalAlignment="Bottom" Click="Refresh_Click" Content="Refresh preview" />
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Padding="14,9" Background="{DynamicResource PaneBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="{Binding StatusSummary}" />
+                <TextBlock Margin="0,5,0,0" Foreground="{DynamicResource ErrorBrush}" Text="{Binding ErrorSummary}" TextWrapping="Wrap"
+                           Visibility="{Binding HasErrors, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </Border>
+        <Grid Grid.Row="2" Margin="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*" MinWidth="360" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" MinWidth="300" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{DynamicResource PaneBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Border Padding="10,0" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <TextBlock FontWeight="SemiBold" Text="Resolved outputs" />
+                    </Border>
+                    <ListBox x:Name="OutputList" Grid.Row="1" ItemsSource="{Binding Items}">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="8,6" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="25" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Icon}" Foreground="{DynamicResource SecondaryTextBrush}" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding RelativePath}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Margin="0,2,0,0" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding Kind}" />
+                                        <TextBlock Margin="0,2,0,0" FontSize="11" Text="{Binding Outcome}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="{DynamicResource BorderBrush}" />
+            <Border Grid.Column="2" Background="{DynamicResource PaneBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                <ScrollViewer Padding="12" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Text="Preview variables" />
+                        <TextBox Margin="0,7,0,0" MinHeight="145" IsReadOnly="True" AcceptsReturn="True"
+                                 FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding VariableSummary}" TextWrapping="Wrap" />
+                        <StackPanel Margin="0,18,0,0" DataContext="{Binding SelectedItem, ElementName=OutputList}">
+                            <TextBlock FontWeight="SemiBold" Text="Selected output" />
+                            <TextBlock Margin="0,7,0,0" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Resolved relative path" />
+                            <TextBox Margin="0,4,0,0" IsReadOnly="True" Text="{Binding RelativePath}" />
+                            <StackPanel Margin="0,13,0,0" Visibility="{Binding HasContent, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Resolved text content" />
+                                <TextBox Margin="0,4,0,0" MinHeight="180" IsReadOnly="True" AcceptsReturn="True"
+                                         FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding ResolvedContent}" TextWrapping="Wrap"
+                                         HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+        <Border Grid.Row="3" Padding="12,9" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Button HorizontalAlignment="Right" IsDefault="True" Click="Close_Click" Content="Close" />
+        </Border>
+    </Grid>
+</Window>

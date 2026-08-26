@@ -919,7 +919,7 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 - [x] Implement template library.
 - [x] Implement structure tree and properties panel.
 - [x] Implement text-file editor.
-- [ ] Implement validation and resolved preview.
+- [x] Implement validation and resolved preview.
 - [ ] Implement folder import.
 - [ ] Implement template import/export.
 - [x] Implement unsaved-change protection.
@@ -944,7 +944,8 @@ Current verified editor slice:
 - [x] Add attached-file management and asset-safe duplication.
 - [ ] Add clipboard operations and in-session delete undo.
 - [ ] Complete library ordering, folder import, and template package import/export.
-- [ ] Add variable insertion, search/replace, resolved preview, and disposable test generation.
+- [x] Add variable insertion for inline names and editable text, plus a non-mutating resolved preview.
+- [ ] Add text search/replace and optional disposable test generation.
 
 ### Milestone 4 — Classic Explorer integration
 
@@ -1048,6 +1049,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Confirm WPF and an editor-local mutable view-model layer for the template editor. | WPF implements the approved Windows-native three-pane experience, while converting to strict immutable Core contracts only for validation and persistence keeps UI state out of the generation engine. |
 | 2026-08-24 | Make template removal recoverable through an application Trash folder. | Templates may contain valuable attached assets; moving the complete package out of the active library provides immediate removal without making an accidental confirmation permanently destructive. |
 | 2026-08-24 | Stage newly attached and replacement files outside saved template packages until Save succeeds. | Content-addressed managed paths preserve the last saved asset reference during editing, avoid abandoned partial packages, permit safe replacement cleanup, and let duplication copy assets independently. |
+| 2026-08-24 | Make the first `Test template...` step a non-mutating resolved preview with an editable sample target path. | Users can verify variable values, output paths, text contents, attachment integrity, and collision outcomes before the optional disposable-generation step is added. |
 
 ## 27. Authoritative references
 

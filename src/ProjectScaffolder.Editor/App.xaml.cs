@@ -63,7 +63,13 @@ public partial class App : Application
                     throw new InvalidOperationException("The Dark theme inactive-selection resources were not applied.");
                 }
 
+                ResolvedPreviewWindow previewWindow = new(viewModel)
+                {
+                    Owner = window,
+                };
+                previewWindow.Show();
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                previewWindow.Close();
                 Shutdown(0);
             }
         }

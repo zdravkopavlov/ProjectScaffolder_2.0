@@ -1,4 +1,5 @@
 using System.IO;
+using ProjectScaffolder.Core.Contracts;
 using ProjectScaffolder.Editor.Services;
 using ProjectScaffolder.Editor.ViewModels;
 
@@ -203,6 +204,70 @@ public sealed class MainViewModelTests
         {
             Directory.Delete(root, true);
         }
+    }
+
+    [Fact]
+    public void ResolvedPreviewShowsNamesVariablesAndTextWithoutWritingFiles()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        TemplateEditorViewModel template = viewModel.SelectedTemplate!;
+        EditorNodeViewModel folder = EditorNodeViewModel.CreateFolder("{{project_name}}");
+        EditorNodeViewModel text = EditorNodeViewModel.CreateTextFile("notes-{{created_date}}.txt");
+        text.Content = "Project={{project_name}}\nPath={{project_path}}\nUser={{user_name}}";
+        folder.AddChild(text);
+        template.AddRoot(folder);
+        template.NotifyStructureChanged();
+        string targetPath = Path.Combine(Path.GetTempPath(), "ProjectScaffolder Preview Tests", Guid.NewGuid().ToString("N"), "Hotel Lobby");
+
+        ResolvedPreviewResult result = viewModel.BuildResolvedPreview(targetPath);
+
+        Assert.False(result.HasErrors);
+        Assert.Contains(result.Items, item => item.RelativePath == "Hotel Lobby");
+        ResolvedPreviewItem textItem = Assert.Single(result.Items, item => item.Kind == "Editable text file");
+        Assert.Contains("Hotel Lobby", textItem.RelativePath, StringComparison.Ordinal);
+        Assert.Contains("Project=Hotel Lobby", textItem.ResolvedContent, StringComparison.Ordinal);
+        Assert.Contains(Path.GetFullPath(targetPath), textItem.ResolvedContent, StringComparison.Ordinal);
+        Assert.Contains("{{project_id}}", result.VariableSummary, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(targetPath));
+    }
+
+    [Fact]
+    public void ResolvedPreviewReportsExistingFileBlockedByFailPolicy()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "ProjectScaffolder.PreviewCollision", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "existing.txt"), "artist content");
+            MainViewModel viewModel = CreateViewModel();
+            viewModel.NewTemplateCommand.Execute(null);
+            EditorNodeViewModel file = EditorNodeViewModel.CreateTextFile("existing.txt");
+            file.Collision = FileCollisionPolicy.Fail;
+            viewModel.SelectedTemplate!.AddRoot(file);
+            viewModel.SelectedTemplate.NotifyStructureChanged();
+
+            ResolvedPreviewResult result = viewModel.BuildResolvedPreview(root);
+
+            Assert.True(result.HasErrors);
+            Assert.Contains(result.Errors, error => error.Contains("collision policy is Fail", StringComparison.Ordinal));
+            Assert.Contains(result.Items, item => item.Outcome.Contains("Blocked", StringComparison.Ordinal));
+            Assert.Equal("artist content", File.ReadAllText(Path.Combine(root, "existing.txt")));
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void VariableMenuContainsExactlyTheVersionOneBuiltIns()
+    {
+        MainViewModel viewModel = CreateViewModel();
+
+        Assert.Equal(
+            ["{{project_name}}", "{{project_path}}", "{{project_id}}", "{{created_date}}", "{{created_at_utc}}", "{{user_name}}"],
+            viewModel.VariableChoices.Select(variable => variable.Token));
     }
 
     private static MainViewModel CreateViewModel() =>

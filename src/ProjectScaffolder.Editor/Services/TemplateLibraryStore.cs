@@ -174,6 +174,30 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
         }
     }
 
+    public ContractValidationResult ValidateEditingAssets(TemplateDocument document)
+    {
+        List<ValidationIssue> issues = [];
+        foreach (AssetFileNode asset in FlattenAssets(document.Nodes))
+        {
+            try
+            {
+                string fullPath = ResolveAvailableAssetPath(document.TemplateId, asset.Asset.Path);
+                using FileStream stream = File.Open(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                string digest = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+                if (!digest.Equals(asset.Asset.Sha256, StringComparison.Ordinal))
+                {
+                    issues.Add(new ValidationIssue("asset.hash", asset.Asset.Path, $"Attached file '{asset.Name}' no longer matches its recorded SHA-256 digest."));
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException)
+            {
+                issues.Add(new ValidationIssue("asset.missing", asset.Asset.Path, $"Attached file '{asset.Name}' is unavailable: {exception.Message}"));
+            }
+        }
+
+        return new ContractValidationResult(issues);
+    }
+
     public void DiscardStaging(Guid templateId)
     {
         string directory = GetStagingDirectory(templateId);

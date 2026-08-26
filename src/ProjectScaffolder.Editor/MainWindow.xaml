@@ -237,10 +237,10 @@
                                           SelectedValue="{Binding LineEndings}"
                                           SelectedValuePath="Value" />
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Text content" />
-                                <TextBox MinHeight="260" AcceptsReturn="True" AcceptsTab="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                <TextBox x:Name="TextContentEditor" MinHeight="260" AcceptsReturn="True" AcceptsTab="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                          Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" />
-                                <Button Margin="0,7,0,0" IsEnabled="False" Content="⌘  Insert variable" ToolTip="Variable insertion menu is coming in the next editor slice." />
+                                <Button Margin="0,7,0,0" Click="InsertVariable_Click" Content="Insert variable…" />
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsAssetFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Managed package file" />
@@ -265,7 +265,7 @@
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <TextBlock Margin="0,0,12,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding StatusMessage}" />
-                    <Button Margin="0" IsEnabled="False" Content="Test template..." ToolTip="Resolved preview is coming in the next editor slice." />
+                    <Button Margin="0" Click="TestTemplate_Click" IsEnabled="{Binding HasSelectedTemplate}" Content="Test template..." />
                 </StackPanel>
             </Grid>
         </Border>

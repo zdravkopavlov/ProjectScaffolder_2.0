@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using ProjectScaffolder.Core.Contracts;
+using ProjectScaffolder.Core.Generation;
 using ProjectScaffolder.Core.Serialization;
+using ProjectScaffolder.Core.Validation;
+using ProjectScaffolder.Core.Variables;
 using ProjectScaffolder.Editor.Services;
 
 namespace ProjectScaffolder.Editor.ViewModels;
@@ -47,6 +50,16 @@ internal sealed class MainViewModel : ObservableObject
         new(FileCollisionPolicy.Skip, "Skip"),
         new(FileCollisionPolicy.Overwrite, "Overwrite"),
         new(FileCollisionPolicy.Fail, "Fail"),
+    ];
+
+    public IReadOnlyList<VariableOption> VariableChoices { get; } =
+    [
+        new("{{project_name}}", "Project name", "Name of the target folder"),
+        new("{{project_path}}", "Project path", "Absolute target-folder path"),
+        new("{{project_id}}", "Project ID", "UUIDv7 assigned to the project"),
+        new("{{created_date}}", "Created date", "UTC date in yyyy-MM-dd format"),
+        new("{{created_at_utc}}", "Created timestamp", "Full UTC creation timestamp"),
+        new("{{user_name}}", "Windows user name", "Current Windows account name"),
     ];
 
     public RelayCommand NewTemplateCommand { get; }
@@ -207,12 +220,126 @@ internal sealed class MainViewModel : ObservableObject
         }
     }
 
+    public ResolvedPreviewResult BuildResolvedPreview(string targetPath)
+    {
+        if (SelectedTemplate is not TemplateEditorViewModel template)
+        {
+            return new ResolvedPreviewResult(targetPath, string.Empty, [], ["No template is selected."]);
+        }
+
+        TemplateDocument document = template.Snapshot();
+        List<string> errors = [];
+        ContractValidationResult assetValidation = store.ValidateEditingAssets(document);
+        errors.AddRange(assetValidation.Issues.Select(issue => issue.Message));
+
+        GenerationContext context;
+        GenerationPlan plan;
+        try
+        {
+            context = GenerationContext.CreateNew(targetPath);
+            plan = GenerationPlanBuilder.Build(document, context);
+        }
+        catch (GenerationPlanException exception)
+        {
+            errors.AddRange(exception.Issues.Select(issue => issue.Message));
+            return new ResolvedPreviewResult(targetPath, string.Empty, [], errors.Distinct(StringComparer.Ordinal).ToArray());
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+        {
+            errors.Add(exception.Message);
+            return new ResolvedPreviewResult(targetPath, string.Empty, [], errors.Distinct(StringComparer.Ordinal).ToArray());
+        }
+
+        List<ResolvedPreviewItem> items = [];
+        foreach (GenerationOperation operation in plan.Operations)
+        {
+            string kind;
+            string outcome;
+            string content = string.Empty;
+            switch (operation)
+            {
+                case CreateDirectoryOperation:
+                    kind = "Folder";
+                    outcome = File.Exists(operation.FullPath)
+                        ? "Blocked: a file already uses this path."
+                        : Directory.Exists(operation.FullPath)
+                            ? "Existing folder will be reused."
+                            : "Create folder.";
+                    if (File.Exists(operation.FullPath))
+                    {
+                        errors.Add($"A file already occupies the folder output '{operation.RelativePath}'.");
+                    }
+
+                    break;
+                case CreateTextFileOperation textFile:
+                    kind = "Editable text file";
+                    content = textFile.Content;
+                    outcome = GetFilePreviewOutcome(textFile, errors);
+                    break;
+                case CopyAssetFileOperation assetFile:
+                    kind = "Attached file";
+                    outcome = GetFilePreviewOutcome(assetFile, errors);
+                    break;
+                default:
+                    continue;
+            }
+
+            items.Add(new ResolvedPreviewItem(
+                operation is CreateDirectoryOperation ? "□" : operation is CreateTextFileOperation ? "▤" : "◇",
+                operation.RelativePath,
+                kind,
+                outcome,
+                content));
+        }
+
+        items.Add(new ResolvedPreviewItem(
+            "◆",
+            ".projectID.json",
+            "Hidden project identity",
+            "Created after successful output generation, or reused for a matching existing project.",
+            string.Empty));
+        string variableSummary = string.Join(Environment.NewLine, context.ToVariableValues().Select(pair => $"{{{{{pair.Key}}}}}  =  {pair.Value}"));
+        return new ResolvedPreviewResult(
+            context.ProjectPath,
+            variableSummary,
+            items,
+            errors.Distinct(StringComparer.Ordinal).ToArray());
+    }
+
     public void DiscardAllStaging()
     {
         foreach (Guid templateId in Templates.Select(item => item.TemplateId).Distinct())
         {
             store.DiscardStaging(templateId);
         }
+    }
+
+    private static string GetFilePreviewOutcome(CreateFileOperation file, List<string> errors)
+    {
+        if (Directory.Exists(file.FullPath))
+        {
+            errors.Add($"A folder already occupies the file output '{file.RelativePath}'.");
+            return "Blocked: a folder already uses this path.";
+        }
+
+        if (!File.Exists(file.FullPath))
+        {
+            return "Create file.";
+        }
+
+        return file.Collision switch
+        {
+            FileCollisionPolicy.Skip => "Existing file will be kept (Skip).",
+            FileCollisionPolicy.Overwrite => "Existing file will be replaced (Overwrite).",
+            FileCollisionPolicy.Fail => AddCollisionError(file.RelativePath, errors),
+            _ => "Existing file requires collision handling.",
+        };
+    }
+
+    private static string AddCollisionError(string relativePath, List<string> errors)
+    {
+        errors.Add($"The existing file '{relativePath}' blocks generation because its collision policy is Fail.");
+        return "Blocked by existing file (Fail).";
     }
 
     public string StatusMessage
