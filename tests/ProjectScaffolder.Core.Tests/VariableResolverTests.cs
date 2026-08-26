@@ -14,7 +14,7 @@ public sealed class VariableResolverTests
             ["project_id"] = "{{user_name}}",
             ["created_at_utc"] = "2026-08-24T12:00:00.000Z",
             ["created_date"] = "2026-08-24",
-            ["user_name"] = "Zdravko",
+            ["user_name"] = "Artist",
         };
 
         string result = VariableResolver.Resolve("{{project_name}}|{{project_id}}", values);

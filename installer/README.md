@@ -24,4 +24,5 @@ The installer:
 - seeds bundled templates only when the corresponding user template does not already exist;
 - refreshes the current user's classic Explorer menu after installation or repair;
 - removes binaries, shortcuts, and Project Scaffolder-owned Explorer keys on uninstall;
-- preserves `%LOCALAPPDATA%\ProjectScaffolder` templates, settings, Trash, and logs on uninstall.
+- preserves `%LOCALAPPDATA%\ProjectScaffolder` templates, settings, Trash, and logs by default on uninstall;
+- offers a default-No uninstall prompt to remove that local user data without affecting generated projects.

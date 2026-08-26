@@ -155,6 +155,8 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-037 | Fresh installations seed one generic `Demo Project`; specialized DCC templates remain user-created examples rather than bundled product assumptions. | Confirmed |
 | D-038 | Uninstall preserves local user data by default and offers a default-No prompt to remove templates, settings, logs, staging data, and Trash. Generated projects are never removed. | Confirmed |
 | D-039 | `.projectThumbnail.jpg` is reserved as an optional future catalog-managed root convention. Project Scaffolder does not create or manage it. | Confirmed |
+| D-040 | Project Scaffolder is published as an open-source project under the MIT License, with third-party notices retained for redistributed artwork. | Confirmed |
+| D-041 | Public repository changes are validated by a Windows GitHub Actions workflow; unsigned alpha installers are distributed only as clearly labeled pre-releases with a SHA-256 checksum. | Confirmed |
 
 ## 7. User workflows
 
@@ -451,7 +453,7 @@ Asset references include a relative path and SHA-256 digest. Export and import w
 | `{{created_date}}` | Creation date in ISO format. | `2026-08-24` |
 | `{{created_at_utc}}` | Full UTC creation timestamp. | `2026-08-24T12:41:37.284Z` |
 | `{{project_id}}` | UUIDv7 assigned to the project. | `01993a74-7a89-7c13-9c54-76b8bf2bb785` |
-| `{{user_name}}` | Current Windows username. | `Zdravko` |
+| `{{user_name}}` | Current Windows username. | `Artist` |
 
 The contract draft makes variable names case-sensitive and requires the lowercase canonical spellings above. Unknown or malformed variable expressions are blocking errors.
 
@@ -972,8 +974,8 @@ Deferred beyond the initial release: clipboard operations, delete undo, manual l
 - [ ] Complete security and failure-path review.
 - [ ] Complete accessibility and high-DPI review.
 - [ ] Test on supported Windows versions.
-- [ ] Write end-user `README.md`.
-- [ ] Produce signed or clearly identified test release artifacts.
+- [x] Write end-user `README.md`.
+- [x] Produce signed or clearly identified test release artifacts.
 - [ ] Approve version 2.0 release checklist.
 
 ### Deferred milestones
@@ -1067,6 +1069,8 @@ Project Scaffolder only reserves and documents this convention. It does not crea
 | 2026-08-25 | Replace the bundled 3ds Max starter with one generic Demo Project. | The installed first impression should explain the general scaffolding model rather than imply that the application is dedicated to one DCC package. |
 | 2026-08-25 | Prompt optionally for local-data removal during uninstall, defaulting to preservation. | Templates and attached assets are user work; removal should be available but never implicit. Generated projects remain outside installer ownership. |
 | 2026-08-25 | Reserve `.projectThumbnail.jpg` for a future catalog and keep it out of scaffolder behavior. | A catalog is the right owner for thumbnail capture, normalization, caching, and replacement; the scaffolder should stay focused. |
+| 2026-08-26 | Publish Project Scaffolder under the MIT License and retain Lucide/Feather notices. | A permissive license matches the author's previous public work while making reuse rights and third-party attribution explicit. |
+| 2026-08-26 | Add Windows CI and distribute alpha.2 as an explicitly unsigned GitHub pre-release with a checksum. | Public builds should be reproducibly validated, and users must be able to distinguish an unsigned test artifact from a signed production release. |
 
 ## 27. Authoritative references
 
