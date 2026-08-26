@@ -240,25 +240,7 @@
                                 <TextBox x:Name="TextContentEditor" MinHeight="260" AcceptsReturn="True" AcceptsTab="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                          Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" />
-                                <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
-                                    <Button Margin="0" Click="InsertVariable_Click" Content="Insert variable…" />
-                                    <Button Margin="7,0,0,0" Click="ToggleSearch_Click" Content="Find/replace…" />
-                                </StackPanel>
-                                <Border x:Name="SearchPanel" Margin="0,9,0,0" Padding="9" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Visibility="Collapsed">
-                                    <StackPanel>
-                                        <TextBlock Margin="0,0,0,4" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Find" />
-                                        <TextBox x:Name="FindTextBox" />
-                                        <TextBlock Margin="0,8,0,4" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Replace with" />
-                                        <TextBox x:Name="ReplaceTextBox" />
-                                        <WrapPanel Margin="0,8,0,0">
-                                            <Button Margin="0" Click="FindNext_Click" Content="Find next" />
-                                            <Button Margin="6,0,0,0" Click="Replace_Click" Content="Replace" />
-                                            <Button Margin="6,0,0,0" Click="ReplaceAll_Click" Content="Replace all" />
-                                            <Button Margin="6,0,0,0" Click="CloseSearch_Click" Content="Close" />
-                                        </WrapPanel>
-                                        <TextBlock x:Name="SearchStatusText" Margin="0,7,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
+                                <Button Margin="0,7,0,0" Click="InsertVariable_Click" Content="Insert variable…" />
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsAssetFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Managed package file" />

@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using ProjectScaffolder.Core.Contracts;
 using ProjectScaffolder.Core.Generation;
-using ProjectScaffolder.Core.Paths;
 using ProjectScaffolder.Core.Serialization;
 using ProjectScaffolder.Core.Validation;
 using ProjectScaffolder.Core.Variables;
@@ -306,72 +305,6 @@ internal sealed class MainViewModel : ObservableObject
             items,
             errors.Distinct(StringComparer.Ordinal).ToArray());
     }
-
-    public async Task<DisposableGenerationResult> GenerateDisposableProjectAsync(string sampleTargetPath)
-    {
-        if (SelectedTemplate is not TemplateEditorViewModel template)
-        {
-            throw new InvalidOperationException("No template is selected.");
-        }
-
-        string samplePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sampleTargetPath));
-        string projectName = Path.GetFileName(samplePath);
-        string? nameError = WindowsNameValidator.GetError(projectName);
-        if (nameError is not null)
-        {
-            throw new ArgumentException($"The sample project folder name is invalid. {nameError}", nameof(sampleTargetPath));
-        }
-
-        string testRoot = GetDisposableTestRoot();
-        Directory.CreateDirectory(testRoot);
-        string workspace = Path.Combine(testRoot, Guid.NewGuid().ToString("N"));
-        string projectPath = Path.Combine(workspace, "Project", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        try
-        {
-            TemplateDocument document = template.Snapshot();
-            string packageDirectory = await store.CreateDisposablePackageAsync(
-                document,
-                Path.Combine(workspace, "Template")).ConfigureAwait(true);
-            GenerationResult result = await ProjectGenerator.GenerateAsync(new GenerationRequest
-            {
-                Template = document,
-                TemplateDirectory = packageDirectory,
-                TargetDirectory = projectPath,
-                GeneratorVersion = "2.0.0-alpha.1-test",
-            }).ConfigureAwait(true);
-            string summary = $"Generated {result.CreatedDirectoryCount} folders and {result.CreatedFileCount} files in a disposable project.";
-            return new DisposableGenerationResult(workspace, projectPath, summary);
-        }
-        catch
-        {
-            DeleteDisposableWorkspace(workspace);
-            throw;
-        }
-    }
-
-    public static bool DeleteDisposableWorkspace(string workspacePath)
-    {
-        string testRoot = GetDisposableTestRoot();
-        string workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspacePath));
-        if (!PathSafety.IsStrictDescendant(testRoot, workspace) ||
-            !string.Equals(Path.GetDirectoryName(workspace), testRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("The requested directory is not a Project Scaffolder disposable workspace.");
-        }
-
-        if (!Directory.Exists(workspace))
-        {
-            return false;
-        }
-
-        Directory.Delete(workspace, true);
-        return true;
-    }
-
-    private static string GetDisposableTestRoot() =>
-        Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "ProjectScaffolder Test Projects")));
 
     public void DiscardAllStaging()
     {

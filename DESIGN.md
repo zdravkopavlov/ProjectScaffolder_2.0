@@ -310,12 +310,12 @@ The template list owns selection, Explorer registration, dirty state, and saving
 Text files should have an integrated plain-text editor with:
 
 - Monospaced text.
-- Search and replace.
 - Variable insertion.
 - Encoding selection.
 - Line-ending selection.
 - A resolved preview.
-- An `Import contents...` action for loading an older editable text file.
+
+Loading an older file into editable text content may be considered later; it is not required for the initial release.
 
 `Add text file...` creates a token-aware file with empty content and immediately enters inline rename mode; it does not force a `.txt` extension. `Attach existing file...` copies a selected file verbatim and is the path for binary or intentionally immutable content.
 
@@ -331,10 +331,7 @@ The editor provides:
 
 - Continuous structural validation.
 - A list of warnings and errors.
-- A single `Test template...` workflow that first shows resolved names, paths, contents, and collision warnings using a configurable sample folder.
-- An optional second step in that workflow that generates a disposable project in a temporary location for inspection.
-- Editable text supports a compact, case-insensitive literal find/replace panel, including `Ctrl+F`, Find next, Replace, and Replace all.
-- Disposable generation is always an explicit second action, uses the production generator with current unsaved edits and staged attachments, and offers Open folder and Delete test project controls. Closing the preview does not silently delete a project the user may be inspecting.
+- A single non-mutating `Test template...` preview that shows resolved names, paths, contents, and collision warnings using a configurable sample folder.
 - Clear distinction between blocking errors and advisory warnings.
 
 The editor follows the current Windows appearance by default. Settings may override this with explicit Light or Dark modes. All three modes are initial-release requirements.
@@ -922,8 +919,6 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 - [x] Implement structure tree and properties panel.
 - [x] Implement text-file editor.
 - [x] Implement validation and resolved preview.
-- [ ] Implement folder import.
-- [ ] Implement template import/export.
 - [x] Implement unsaved-change protection.
 
 Current verified editor slice:
@@ -944,10 +939,9 @@ Current verified editor slice:
 - [x] Preserve independent dirty sessions while switching templates and protect all dirty sessions on close.
 - [x] Remove templates with confirmation and retain saved packages in the recoverable application Trash folder.
 - [x] Add attached-file management and asset-safe duplication.
-- [ ] Add clipboard operations and in-session delete undo.
-- [ ] Complete library ordering, folder import, and template package import/export.
 - [x] Add variable insertion for inline names and editable text, plus a non-mutating resolved preview.
-- [x] Add text search/replace and optional disposable test generation.
+
+Deferred beyond the initial release: clipboard operations, delete undo, manual library ordering, folder import, template package import/export, text search/replace, and disposable test generation. These features should return only in response to a demonstrated workflow need.
 
 ### Milestone 4 — Classic Explorer integration
 
@@ -990,7 +984,7 @@ Questions marked **Baseline** should be answered before implementation begins. O
 | ID | Question | Recommendation | When |
 | --- | --- | --- | --- |
 | Q-010 | What package extension should exported templates use? | Choose a product-specific ZIP-based extension after naming is final. | Milestone 3 |
-| Q-011 | Should Explorer submenu order be manually configurable? | Yes. | Milestone 3 |
+| Q-011 | Should Explorer submenu order be manually configurable? | Deferred; initial release uses stable library order. | Post-1.0 |
 | Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Decide through a small packaging spike. | Milestone 5 |
 | Q-015 | Should imported folders include hidden/system files by default? | Exclude by default and offer an explicit option. | Milestone 3 |
 
@@ -1051,8 +1045,9 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Confirm WPF and an editor-local mutable view-model layer for the template editor. | WPF implements the approved Windows-native three-pane experience, while converting to strict immutable Core contracts only for validation and persistence keeps UI state out of the generation engine. |
 | 2026-08-24 | Make template removal recoverable through an application Trash folder. | Templates may contain valuable attached assets; moving the complete package out of the active library provides immediate removal without making an accidental confirmation permanently destructive. |
 | 2026-08-24 | Stage newly attached and replacement files outside saved template packages until Save succeeds. | Content-addressed managed paths preserve the last saved asset reference during editing, avoid abandoned partial packages, permit safe replacement cleanup, and let duplication copy assets independently. |
-| 2026-08-24 | Make the first `Test template...` step a non-mutating resolved preview with an editable sample target path. | Users can verify variable values, output paths, text contents, attachment integrity, and collision outcomes before the optional disposable-generation step is added. |
+| 2026-08-24 | Make `Test template...` a non-mutating resolved preview with an editable sample target path. | Users can verify variable values, output paths, text contents, attachment integrity, and collision outcomes without writing a project. |
 | 2026-08-24 | Keep preview non-mutating and make disposable generation a separate explicit action using the production generator. | This tests the actual filesystem behavior, including unsaved edits and staged assets, while keeping ordinary preview safe; generated workspaces can be opened and are deleted only on explicit request. |
+| 2026-08-24 | Refocus the initial release on defining structures, including files, registering templates, and generating silently from Explorer; defer editor conveniences and disposable generation. | Project Scaffolder is a focused scaffolding utility, not a miniature IDE. This decision supersedes the disposable-generation decision above and moves active work to Explorer integration. |
 
 ## 27. Authoritative references
 

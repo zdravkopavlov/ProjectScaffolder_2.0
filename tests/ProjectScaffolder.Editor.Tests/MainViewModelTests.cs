@@ -270,52 +270,6 @@ public sealed class MainViewModelTests
             viewModel.VariableChoices.Select(variable => variable.Token));
     }
 
-    [Fact]
-    public async Task DisposableGenerationUsesUnsavedTemplateAndStagedAssets()
-    {
-        string root = Path.Combine(Path.GetTempPath(), "ProjectScaffolder.DisposableTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        string? workspace = null;
-        try
-        {
-            MainViewModel viewModel = new(new TemplateLibraryStore(new EditorPaths(Path.Combine(root, "EditorData"))));
-            viewModel.NewTemplateCommand.Execute(null);
-            EditorNodeViewModel folder = EditorNodeViewModel.CreateFolder("SCENES");
-            EditorNodeViewModel text = EditorNodeViewModel.CreateTextFile("project.txt");
-            text.Content = "Name={{project_name}}\nPath={{project_path}}";
-            folder.AddChild(text);
-            viewModel.SelectedTemplate!.AddRoot(folder);
-            viewModel.SelectedTemplate.NotifyStructureChanged();
-            byte[] assetBytes = [9, 7, 5, 3, 1];
-            string assetSource = Path.Combine(root, "starter.max");
-            await File.WriteAllBytesAsync(assetSource, assetBytes);
-            await viewModel.AttachFileAsync(assetSource);
-
-            DisposableGenerationResult result = await viewModel.GenerateDisposableProjectAsync(
-                Path.Combine(root, "Sample", "Hotel Lobby"));
-            workspace = result.WorkspacePath;
-
-            Assert.Contains(Path.Combine(Path.GetTempPath(), "ProjectScaffolder Test Projects"), result.ProjectPath, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(assetBytes, await File.ReadAllBytesAsync(Path.Combine(result.ProjectPath, "starter.max")));
-            string generatedText = await File.ReadAllTextAsync(Path.Combine(result.ProjectPath, "SCENES", "project.txt"));
-            Assert.Contains("Name=Hotel Lobby", generatedText, StringComparison.Ordinal);
-            Assert.Contains(result.ProjectPath, generatedText, StringComparison.OrdinalIgnoreCase);
-            Assert.True(File.Exists(Path.Combine(result.ProjectPath, ".projectID.json")));
-            Assert.True(MainViewModel.DeleteDisposableWorkspace(workspace));
-            Assert.False(Directory.Exists(workspace));
-            workspace = null;
-        }
-        finally
-        {
-            if (workspace is not null && Directory.Exists(workspace))
-            {
-                _ = MainViewModel.DeleteDisposableWorkspace(workspace);
-            }
-
-            Directory.Delete(root, true);
-        }
-    }
-
     private static MainViewModel CreateViewModel() =>
         new(new TemplateLibraryStore(new EditorPaths(Path.GetTempPath())));
 }

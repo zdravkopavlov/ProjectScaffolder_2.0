@@ -20,7 +20,7 @@
                 <StackPanel>
                     <TextBlock FontWeight="SemiBold" Text="Sample project folder" />
                     <TextBlock Margin="0,3,0,7" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
-                               Text="Previewing creates nothing. Disposable generation uses the real engine in your Windows temporary folder." />
+                               Text="Names, paths, variables, contents, and existing-file behavior are resolved without creating anything." />
                     <TextBox x:Name="TargetPathBox" MinWidth="520" />
                 </StackPanel>
                 <Button Grid.Column="1" Margin="12,25,0,0" VerticalAlignment="Bottom" Click="Refresh_Click" Content="Refresh preview" />
@@ -97,20 +97,7 @@
             </Border>
         </Grid>
         <Border Grid.Row="3" Padding="12,9" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock x:Name="GenerationStatusText" Margin="0,0,14,0" VerticalAlignment="Center"
-                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" />
-                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
-                    <Button x:Name="GenerateButton" Margin="0" Click="Generate_Click" Content="Generate disposable project…" />
-                    <Button x:Name="OpenGeneratedButton" Margin="7,0,0,0" Click="OpenGenerated_Click" IsEnabled="False" Content="Open folder" />
-                    <Button x:Name="DeleteGeneratedButton" Margin="7,0,0,0" Click="DeleteGenerated_Click" IsEnabled="False" Content="Delete test project" />
-                    <Button Margin="7,0,0,0" IsDefault="True" Click="Close_Click" Content="Close" />
-                </StackPanel>
-            </Grid>
+            <Button HorizontalAlignment="Right" IsDefault="True" Click="Close_Click" Content="Close" />
         </Border>
     </Grid>
 </Window>
