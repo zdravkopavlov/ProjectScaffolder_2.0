@@ -24,6 +24,26 @@ public partial class MainWindow : Window
     private void StructureTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) =>
         ViewModel.SelectedNode = e.NewValue as EditorNodeViewModel;
 
+    private void ProjectRoot_Click(object sender, RoutedEventArgs e)
+    {
+        ClearTreeSelection(StructureTree);
+        ViewModel.SelectedNode = null;
+    }
+
+    private static void ClearTreeSelection(ItemsControl itemsControl)
+    {
+        foreach (object item in itemsControl.Items)
+        {
+            if (itemsControl.ItemContainerGenerator.ContainerFromItem(item) is not TreeViewItem treeItem)
+            {
+                continue;
+            }
+
+            treeItem.IsSelected = false;
+            ClearTreeSelection(treeItem);
+        }
+    }
+
     private void ThemePicker_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!IsLoaded)

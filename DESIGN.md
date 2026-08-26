@@ -930,13 +930,14 @@ Current verified editor slice:
 - [x] Follow the Windows application theme and provide runtime System, Light, and Dark choices.
 - [x] Load templates from Local AppData, seed the bundled example once, and keep damaged templates visible.
 - [x] Create and duplicate templates; add, rename, remove, and reorder basic folder/text nodes.
+- [x] Treat the visible project-root row as a selectable insertion target for first-level folders and files.
 - [x] Edit text content, encoding, line endings, and collision behavior in the properties pane.
 - [x] Continuously validate both contract rules and resolved output-path conflicts.
 - [x] Save valid templates atomically with dirty-state tracking and `Ctrl+S`.
 - [x] Preserve independent dirty sessions while switching templates and protect all dirty sessions on close.
 - [x] Remove templates with confirmation and retain saved packages in the recoverable application Trash folder.
 - [ ] Add attached-file management and asset-safe duplication.
-- [ ] Add drag-and-drop, clipboard operations, and in-session delete undo.
+- [ ] Add inline rename, drag-and-drop, clipboard operations, and in-session delete undo.
 - [ ] Complete library ordering, folder import, and template package import/export.
 - [ ] Add variable insertion, search/replace, resolved preview, and disposable test generation.
 

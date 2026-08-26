@@ -14,7 +14,7 @@ def point(x: float, y: float) -> tuple[float, float]:
 
 image = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
 draw = ImageDraw.Draw(image)
-draw.rounded_rectangle((32, 32, CANVAS - 32, CANVAS - 32), radius=190, fill="#4f8bc9")
+draw.rounded_rectangle((32, 32, CANVAS - 32, CANVAS - 32), radius=190, fill="#000000")
 stroke = max(2, round(1.65 * UNIT))
 white = "#ffffff"
 

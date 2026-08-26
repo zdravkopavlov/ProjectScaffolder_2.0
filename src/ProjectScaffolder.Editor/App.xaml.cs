@@ -57,6 +57,12 @@ public partial class App : Application
                     throw new InvalidOperationException("The Dark theme resources were not applied.");
                 }
 
+                if (TryFindResource(SystemColors.InactiveSelectionHighlightBrushKey) is not SolidColorBrush inactiveSelectionBrush ||
+                    inactiveSelectionBrush.Color != Color.FromRgb(0x35, 0x57, 0x7D))
+                {
+                    throw new InvalidOperationException("The Dark theme inactive-selection resources were not applied.");
+                }
+
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
                 Shutdown(0);
             }

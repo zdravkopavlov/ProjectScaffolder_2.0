@@ -10,6 +10,10 @@
     <SolidColorBrush x:Key="SecondaryTextBrush" Color="#595959" />
     <SolidColorBrush x:Key="AccentBrush" Color="#286FBA" />
     <SolidColorBrush x:Key="AccentSelectionBrush" Color="#CDE3FA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#CDE3FA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#171717" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#CDE3FA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#171717" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#15803D" />
     <SolidColorBrush x:Key="WarningBrush" Color="#8A5A00" />
     <SolidColorBrush x:Key="ErrorBrush" Color="#C42B1C" />

@@ -96,12 +96,15 @@ internal sealed class MainViewModel : ObservableObject
             if (SetProperty(ref selectedNode, value))
             {
                 OnPropertyChanged(nameof(HasSelectedNode));
+                OnPropertyChanged(nameof(IsProjectRootSelected));
                 NotifyCommandStates();
             }
         }
     }
 
     public bool HasSelectedNode => SelectedNode is not null;
+
+    public bool IsProjectRootSelected => SelectedNode is null;
 
     public string StatusMessage
     {
@@ -253,9 +256,10 @@ internal sealed class MainViewModel : ObservableObject
     {
         TemplateEditorViewModel template = SelectedTemplate!;
         EditorNodeViewModel folder = EditorNodeViewModel.CreateFolder(GetUniqueName("New Folder"));
-        if (SelectedNode?.Kind == EditorNodeKind.Folder)
+        EditorNodeViewModel? parent = GetInsertionParent();
+        if (parent is not null)
         {
-            SelectedNode.AddChild(folder);
+            parent.AddChild(folder);
         }
         else
         {
@@ -270,9 +274,10 @@ internal sealed class MainViewModel : ObservableObject
     {
         TemplateEditorViewModel template = SelectedTemplate!;
         EditorNodeViewModel file = EditorNodeViewModel.CreateTextFile(GetUniqueName("New File"));
-        if (SelectedNode?.Kind == EditorNodeKind.Folder)
+        EditorNodeViewModel? parent = GetInsertionParent();
+        if (parent is not null)
         {
-            SelectedNode.AddChild(file);
+            parent.AddChild(file);
         }
         else
         {
@@ -339,9 +344,8 @@ internal sealed class MainViewModel : ObservableObject
 
     private string GetUniqueName(string baseName)
     {
-        IEnumerable<string> names = SelectedNode?.Kind == EditorNodeKind.Folder
-            ? SelectedNode.Children.Select(node => node.Name)
-            : SelectedTemplate!.Nodes.Select(node => node.Name);
+        EditorNodeViewModel? parent = GetInsertionParent();
+        IEnumerable<string> names = (parent?.Children ?? SelectedTemplate!.Nodes).Select(node => node.Name);
         HashSet<string> existing = names.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (!existing.Contains(baseName))
         {
@@ -357,6 +361,9 @@ internal sealed class MainViewModel : ObservableObject
             }
         }
     }
+
+    private EditorNodeViewModel? GetInsertionParent() =>
+        SelectedNode?.Kind == EditorNodeKind.Folder ? SelectedNode : SelectedNode?.Parent;
 
     private async void ExplorerEnabledChanged(object? sender, EventArgs e)
     {

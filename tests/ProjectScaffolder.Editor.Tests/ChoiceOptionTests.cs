@@ -15,5 +15,6 @@ public sealed class ChoiceOptionTests
 
         Assert.Null(first.Value);
         Assert.Equal("Use template default", first.Label);
+        Assert.Equal("Use template default", first.ToString());
     }
 }

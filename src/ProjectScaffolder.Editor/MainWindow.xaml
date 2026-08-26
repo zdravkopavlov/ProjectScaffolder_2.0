@@ -121,7 +121,18 @@
                             <RowDefinition Height="42" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <Button Click="ProjectRoot_Click" Margin="0" Padding="7,0" BorderThickness="0,0,0,1"
+                                BorderBrush="{DynamicResource BorderBrush}" HorizontalContentAlignment="Stretch"
+                                ToolTip="Select the project root to add first-level folders and files.">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsProjectRootSelected}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource AccentSelectionBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Margin="4,0,9,0" Text="□" Foreground="{DynamicResource SecondaryTextBrush}" />
@@ -129,8 +140,8 @@
                                 </StackPanel>
                                 <TextBlock HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Text="target folder" />
                             </Grid>
-                        </Border>
-                        <TreeView Grid.Row="1" Padding="9" ItemsSource="{Binding SelectedTemplate.Nodes}"
+                        </Button>
+                        <TreeView x:Name="StructureTree" Grid.Row="1" Padding="9" ItemsSource="{Binding SelectedTemplate.Nodes}"
                                   SelectedItemChanged="StructureTree_SelectedItemChanged" />
                     </Grid>
                 </Grid>
