@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using ProjectScaffolder.Core.Contracts;
 
 namespace ProjectScaffolder.Editor.ViewModels;
@@ -17,6 +18,8 @@ internal sealed class EditorNodeViewModel : ObservableObject
     private TextFileEncodingKind encoding;
     private LineEndingKind lineEndings;
     private string content;
+    private string? assetPath;
+    private string? assetSha256;
     private bool isEditing;
     private bool isDropTarget;
 
@@ -38,8 +41,8 @@ internal sealed class EditorNodeViewModel : ObservableObject
         this.encoding = encoding;
         this.lineEndings = lineEndings;
         this.content = content;
-        AssetPath = assetPath;
-        AssetSha256 = assetSha256;
+        this.assetPath = assetPath;
+        this.assetSha256 = assetSha256;
         Children.CollectionChanged += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -113,9 +116,13 @@ internal sealed class EditorNodeViewModel : ObservableObject
         }
     }
 
-    public string? AssetPath { get; }
+    public string? AssetPath => assetPath;
 
-    public string? AssetSha256 { get; }
+    public string? AssetSha256 => assetSha256;
+
+    public string AssetFileName => assetPath is null ? string.Empty : Path.GetFileName(assetPath.Replace('/', Path.DirectorySeparatorChar));
+
+    public string AssetDigestDisplay => assetSha256 is null ? string.Empty : $"SHA-256  {assetSha256}";
 
     public string TypeLabel => Kind switch
     {
@@ -135,6 +142,8 @@ internal sealed class EditorNodeViewModel : ObservableObject
 
     public bool IsTextFile => Kind == EditorNodeKind.TextFile;
 
+    public bool IsAssetFile => Kind == EditorNodeKind.AssetFile;
+
     public bool IsFile => Kind != EditorNodeKind.Folder;
 
     public bool IsEditing
@@ -152,6 +161,17 @@ internal sealed class EditorNodeViewModel : ObservableObject
     public void BeginRename() => IsEditing = true;
 
     public void EndRename() => IsEditing = false;
+
+    public void ReplaceAsset(string path, string sha256)
+    {
+        assetPath = path;
+        assetSha256 = sha256;
+        OnPropertyChanged(nameof(AssetPath));
+        OnPropertyChanged(nameof(AssetSha256));
+        OnPropertyChanged(nameof(AssetFileName));
+        OnPropertyChanged(nameof(AssetDigestDisplay));
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public void AddChild(EditorNodeViewModel child)
     {
@@ -220,6 +240,9 @@ internal sealed class EditorNodeViewModel : ObservableObject
 
     public static EditorNodeViewModel CreateTextFile(string name) =>
         new(Guid.CreateVersion7(), EditorNodeKind.TextFile, name, null, TextFileEncodingKind.Utf8, LineEndingKind.CrLf, string.Empty, null, null);
+
+    public static EditorNodeViewModel CreateAssetFile(Guid nodeId, string name, string assetPath, string assetSha256) =>
+        new(nodeId, EditorNodeKind.AssetFile, name, null, TextFileEncodingKind.Utf8, LineEndingKind.CrLf, string.Empty, assetPath, assetSha256);
 
     private void ChildChanged(object? sender, EventArgs e) => Changed?.Invoke(sender, e);
 }

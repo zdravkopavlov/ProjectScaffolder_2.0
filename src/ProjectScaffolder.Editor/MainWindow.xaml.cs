@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using ProjectScaffolder.Editor.Services;
 using ProjectScaffolder.Editor.ViewModels;
 
@@ -432,6 +433,32 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void AttachFile_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dialog = CreateAttachmentDialog("Attach file to template");
+        if (dialog.ShowDialog(this) == true)
+        {
+            await ViewModel.AttachFileAsync(dialog.FileName).ConfigureAwait(true);
+        }
+    }
+
+    private async void ReplaceAttachedFile_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dialog = CreateAttachmentDialog("Replace attached file contents");
+        if (dialog.ShowDialog(this) == true)
+        {
+            await ViewModel.ReplaceSelectedAssetAsync(dialog.FileName).ConfigureAwait(true);
+        }
+    }
+
+    private static OpenFileDialog CreateAttachmentDialog(string title) => new()
+    {
+        Title = title,
+        Filter = "All files (*.*)|*.*",
+        CheckFileExists = true,
+        Multiselect = false,
+    };
+
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (closeApproved || !ViewModel.Templates.Any(item => item.Editor?.IsDirty == true))
@@ -455,6 +482,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        ViewModel.DiscardAllStaging();
         closeApproved = true;
         Close();
     }

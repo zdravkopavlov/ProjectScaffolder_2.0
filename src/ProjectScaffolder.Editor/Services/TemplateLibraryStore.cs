@@ -1,5 +1,7 @@
 using System.IO;
+using System.Security.Cryptography;
 using ProjectScaffolder.Core.Contracts;
+using ProjectScaffolder.Core.Paths;
 using ProjectScaffolder.Core.Persistence;
 using ProjectScaffolder.Core.Serialization;
 using ProjectScaffolder.Core.Validation;
@@ -12,6 +14,8 @@ internal sealed record LoadedTemplateLibrary(
     IReadOnlyList<StoredTemplate> Templates,
     IReadOnlySet<Guid> ExplorerTemplateIds);
 
+internal sealed record StagedAsset(string RelativePath, string Sha256, string OriginalFileName);
+
 internal sealed class TemplateLibraryStore(EditorPaths paths)
 {
     private TemplateLibraryDocument library = new()
@@ -23,6 +27,7 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
 
     public async Task<LoadedTemplateLibrary> LoadAsync(CancellationToken cancellationToken = default)
     {
+        ResetStagingArea();
         Directory.CreateDirectory(paths.TemplatesRoot);
         Directory.CreateDirectory(paths.SettingsRoot);
         await SeedBundledTemplatesAsync(cancellationToken).ConfigureAwait(false);
@@ -81,6 +86,8 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
         }
 
         string templateDirectory = Path.Combine(paths.TemplatesRoot, document.TemplateId.ToString("D"));
+        HashSet<string> previousAssetPaths = ReadSavedAssetPaths(templateDirectory);
+        await CommitStagedAssetsAsync(document, templateDirectory, cancellationToken).ConfigureAwait(false);
         ContractValidationResult assets = TemplateAssetValidator.Validate(document, templateDirectory);
         if (!assets.IsValid)
         {
@@ -89,10 +96,90 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
 
         string templatePath = Path.Combine(templateDirectory, "template.json");
         await AtomicJsonFile.SaveAsync(templatePath, ContractJson.Serialize(document), true, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            DeleteAssetsNoLongerReferenced(templateDirectory, previousAssetPaths, FlattenAssets(document.Nodes).Select(asset => asset.Asset.Path));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The template commit succeeded. An obsolete managed asset may remain and can be retried on a later save.
+        }
         if (!library.TemplateOrder.Contains(document.TemplateId))
         {
             library = library with { TemplateOrder = library.TemplateOrder.Append(document.TemplateId).ToArray() };
             await SaveLibraryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        DiscardStaging(document.TemplateId);
+    }
+
+    public async Task<StagedAsset> StageAssetAsync(
+        Guid templateId,
+        Guid nodeId,
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        string fullSourcePath = Path.GetFullPath(sourcePath);
+        if (!File.Exists(fullSourcePath))
+        {
+            throw new FileNotFoundException("The file to attach does not exist.", fullSourcePath);
+        }
+
+        string stagingDirectory = GetStagingDirectory(templateId);
+        Directory.CreateDirectory(stagingDirectory);
+        string temporaryPath = Path.Combine(stagingDirectory, $"attach-{Guid.NewGuid():N}.tmp");
+        try
+        {
+            await using (FileStream source = File.Open(fullSourcePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            await using (FileStream destination = File.Open(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            string digest;
+            await using (FileStream staged = File.Open(temporaryPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                digest = Convert.ToHexString(await SHA256.HashDataAsync(staged, cancellationToken).ConfigureAwait(false)).ToLowerInvariant();
+            }
+            string originalName = Path.GetFileName(fullSourcePath);
+            string storedName = SanitizeAssetFileName(originalName);
+            string relativePath = $"assets/{nodeId:N}/{digest[..12]}-{storedName}";
+            string finalPath = ResolveStagingPath(templateId, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
+            File.Move(temporaryPath, finalPath, true);
+            return new StagedAsset(relativePath, digest, originalName);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    public async Task StageAssetsForDuplicateAsync(
+        Guid sourceTemplateId,
+        TemplateDocument duplicate,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (AssetFileNode asset in FlattenAssets(duplicate.Nodes))
+        {
+            string sourcePath = ResolveAvailableAssetPath(sourceTemplateId, asset.Asset.Path);
+            string destinationPath = ResolveStagingPath(duplicate.TemplateId, asset.Asset.Path);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            await CopyFileAsync(sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public void DiscardStaging(Guid templateId)
+    {
+        string directory = GetStagingDirectory(templateId);
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, true);
         }
     }
 
@@ -117,6 +204,7 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
 
     public async Task<string?> RemoveTemplateAsync(Guid templateId, CancellationToken cancellationToken = default)
     {
+        DiscardStaging(templateId);
         string sourceDirectory = Path.Combine(paths.TemplatesRoot, templateId.ToString("D"));
         string? trashDirectory = null;
         if (Directory.Exists(sourceDirectory))
@@ -182,5 +270,161 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
         }
 
         await AtomicJsonFile.SaveAsync(paths.SeedMarkerPath, "seeded" + Environment.NewLine, false, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task CommitStagedAssetsAsync(
+        TemplateDocument document,
+        string templateDirectory,
+        CancellationToken cancellationToken)
+    {
+        foreach (AssetFileNode asset in FlattenAssets(document.Nodes))
+        {
+            string stagedPath = ResolveStagingPath(document.TemplateId, asset.Asset.Path);
+            if (!File.Exists(stagedPath))
+            {
+                continue;
+            }
+
+            string destinationPath = PathSafety.ResolveDescendant(templateDirectory, asset.Asset.Path.Split('/'));
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            string temporaryPath = destinationPath + $".{Guid.NewGuid():N}.tmp";
+            try
+            {
+                await CopyFileAsync(stagedPath, temporaryPath, cancellationToken).ConfigureAwait(false);
+                File.Move(temporaryPath, destinationPath, true);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+        }
+    }
+
+    private string ResolveAvailableAssetPath(Guid templateId, string relativePath)
+    {
+        string stagedPath = ResolveStagingPath(templateId, relativePath);
+        if (File.Exists(stagedPath))
+        {
+            return stagedPath;
+        }
+
+        string templateDirectory = Path.Combine(paths.TemplatesRoot, templateId.ToString("D"));
+        string packagePath = PathSafety.ResolveDescendant(templateDirectory, relativePath.Split('/'));
+        if (!File.Exists(packagePath))
+        {
+            throw new FileNotFoundException("An attached file could not be found while duplicating the template.", packagePath);
+        }
+
+        return packagePath;
+    }
+
+    private string ResolveStagingPath(Guid templateId, string relativePath) =>
+        PathSafety.ResolveDescendant(GetStagingDirectory(templateId), relativePath.Split('/'));
+
+    private string GetStagingDirectory(Guid templateId) => Path.Combine(paths.StagingRoot, templateId.ToString("D"));
+
+    private void ResetStagingArea()
+    {
+        if (Directory.Exists(paths.StagingRoot))
+        {
+            Directory.Delete(paths.StagingRoot, true);
+        }
+
+        Directory.CreateDirectory(paths.StagingRoot);
+    }
+
+    private static async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+    {
+        await using FileStream source = File.Open(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        await using FileStream destination = File.Open(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await source.CopyToAsync(destination, cancellationToken).ConfigureAwait(false);
+        await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static IEnumerable<AssetFileNode> FlattenAssets(IEnumerable<TemplateNode> nodes)
+    {
+        foreach (TemplateNode node in nodes)
+        {
+            if (node is AssetFileNode asset)
+            {
+                yield return asset;
+            }
+            else if (node is FolderNode folder)
+            {
+                foreach (AssetFileNode descendant in FlattenAssets(folder.Children))
+                {
+                    yield return descendant;
+                }
+            }
+        }
+    }
+
+    private static HashSet<string> ReadSavedAssetPaths(string templateDirectory)
+    {
+        string templatePath = Path.Combine(templateDirectory, "template.json");
+        if (!File.Exists(templatePath))
+        {
+            return [];
+        }
+
+        try
+        {
+            TemplateDocument saved = ValidatedContractReader.ReadTemplate(File.ReadAllText(templatePath));
+            return FlattenAssets(saved.Nodes).Select(asset => asset.Asset.Path).ToHashSet(StringComparer.Ordinal);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or ContractValidationException)
+        {
+            return [];
+        }
+    }
+
+    private static void DeleteAssetsNoLongerReferenced(
+        string templateDirectory,
+        IEnumerable<string> previousPaths,
+        IEnumerable<string> currentPaths)
+    {
+        HashSet<string> retained = currentPaths.ToHashSet(StringComparer.Ordinal);
+        string assetsRoot = Path.Combine(templateDirectory, "assets");
+        foreach (string relativePath in previousPaths.Where(path => !retained.Contains(path)))
+        {
+            string fullPath = PathSafety.ResolveDescendant(templateDirectory, relativePath.Split('/'));
+            if (File.Exists(fullPath) && !File.GetAttributes(fullPath).HasFlag(FileAttributes.ReparsePoint))
+            {
+                File.Delete(fullPath);
+            }
+
+            string? directory = Path.GetDirectoryName(fullPath);
+            while (directory is not null &&
+                   !directory.Equals(assetsRoot, StringComparison.OrdinalIgnoreCase) &&
+                   Directory.Exists(directory) &&
+                   !Directory.EnumerateFileSystemEntries(directory).Any())
+            {
+                Directory.Delete(directory);
+                directory = Path.GetDirectoryName(directory);
+            }
+        }
+
+        if (Directory.Exists(assetsRoot) && !Directory.EnumerateFileSystemEntries(assetsRoot).Any())
+        {
+            Directory.Delete(assetsRoot);
+        }
+    }
+
+    private static string SanitizeAssetFileName(string fileName)
+    {
+        string sanitized = string.Concat(fileName.Select(character =>
+            char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-'
+                ? character
+                : '_'));
+        sanitized = sanitized.Trim('.');
+        if (string.IsNullOrWhiteSpace(sanitized))
+        {
+            sanitized = "attached-file";
+        }
+
+        return sanitized.Length <= 120 ? sanitized : sanitized[..120];
     }
 }

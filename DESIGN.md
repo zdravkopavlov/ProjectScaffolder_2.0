@@ -916,13 +916,13 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 ### Milestone 3 — Template editor
 
 - [x] Establish the WPF visual design.
-- [ ] Implement template library.
-- [ ] Implement structure tree and properties panel.
-- [ ] Implement text-file editor.
+- [x] Implement template library.
+- [x] Implement structure tree and properties panel.
+- [x] Implement text-file editor.
 - [ ] Implement validation and resolved preview.
 - [ ] Implement folder import.
 - [ ] Implement template import/export.
-- [ ] Implement unsaved-change protection.
+- [x] Implement unsaved-change protection.
 
 Current verified editor slice:
 
@@ -941,7 +941,7 @@ Current verified editor slice:
 - [x] Save valid templates atomically with dirty-state tracking and `Ctrl+S`.
 - [x] Preserve independent dirty sessions while switching templates and protect all dirty sessions on close.
 - [x] Remove templates with confirmation and retain saved packages in the recoverable application Trash folder.
-- [ ] Add attached-file management and asset-safe duplication.
+- [x] Add attached-file management and asset-safe duplication.
 - [ ] Add clipboard operations and in-session delete undo.
 - [ ] Complete library ordering, folder import, and template package import/export.
 - [ ] Add variable insertion, search/replace, resolved preview, and disposable test generation.
@@ -1047,6 +1047,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Complete the Milestone 2 generation runner and retain bounded logs for all invocations. | The consoleless runner now applies validated plans transactionally, creates stable hidden project identity, rolls back conservatively, stays silent on success, reports failures clearly, and preserves enough structured diagnostics without unbounded storage growth. |
 | 2026-08-24 | Confirm WPF and an editor-local mutable view-model layer for the template editor. | WPF implements the approved Windows-native three-pane experience, while converting to strict immutable Core contracts only for validation and persistence keeps UI state out of the generation engine. |
 | 2026-08-24 | Make template removal recoverable through an application Trash folder. | Templates may contain valuable attached assets; moving the complete package out of the active library provides immediate removal without making an accidental confirmation permanently destructive. |
+| 2026-08-24 | Stage newly attached and replacement files outside saved template packages until Save succeeds. | Content-addressed managed paths preserve the last saved asset reference during editing, avoid abandoned partial packages, permit safe replacement cleanup, and let duplication copy assets independently. |
 
 ## 27. Authoritative references
 

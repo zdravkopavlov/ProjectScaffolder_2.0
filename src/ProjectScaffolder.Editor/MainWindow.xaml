@@ -157,6 +157,7 @@
                     <StackPanel Grid.Row="1" Margin="10,7" Orientation="Horizontal">
                         <Button Command="{Binding AddFolderCommand}" Content="Folder" />
                         <Button Command="{Binding AddTextFileCommand}" Content="Add text file" />
+                        <Button Click="AttachFile_Click" IsEnabled="{Binding HasSelectedTemplate}" Content="Attach file…" />
                         <Button Command="{Binding RenameNodeCommand}" Content="Rename" ToolTip="Rename the selected item (F2)." />
                         <Button Command="{Binding DeleteNodeCommand}" Content="Delete item" />
                     </StackPanel>
@@ -240,6 +241,15 @@
                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                          Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Margin="0,7,0,0" IsEnabled="False" Content="⌘  Insert variable" ToolTip="Variable insertion menu is coming in the next editor slice." />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsAssetFile, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Managed package file" />
+                                <TextBox IsReadOnly="True" Text="{Binding AssetFileName, Mode=OneWay}" />
+                                <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Integrity" />
+                                <TextBox IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="11" Text="{Binding AssetDigestDisplay, Mode=OneWay}" />
+                                <TextBlock Margin="0,6,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                           Text="Attached files are copied verbatim. Project variables are not substituted in their contents." TextWrapping="Wrap" />
+                                <Button Margin="0,13,0,0" Click="ReplaceAttachedFile_Click" Content="Replace attached contents…" />
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>

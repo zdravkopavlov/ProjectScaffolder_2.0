@@ -156,6 +156,55 @@ public sealed class MainViewModelTests
         Assert.Equal("Nested", Assert.Single(dragged.Children).Name);
     }
 
+    [Fact]
+    public async Task AttachAndReplaceFileFlowsThroughEditorAndPackageSave()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "ProjectScaffolder.EditorTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            EditorPaths paths = new(root);
+            TemplateLibraryStore store = new(paths);
+            await store.LoadAsync();
+            MainViewModel viewModel = new(store);
+            viewModel.NewTemplateCommand.Execute(null);
+            byte[] original = [1, 3, 5, 7];
+            string originalPath = Path.Combine(root, "starter.max");
+            await File.WriteAllBytesAsync(originalPath, original);
+
+            await viewModel.AttachFileAsync(originalPath);
+
+            EditorNodeViewModel asset = Assert.Single(viewModel.SelectedTemplate!.Nodes);
+            Assert.True(asset.IsAssetFile);
+            Assert.Equal("starter.max", asset.Name);
+            Assert.Null(viewModel.SelectedNode);
+            Assert.True(await viewModel.SaveCurrentTemplateAsync());
+            string firstPackagePath = Path.Combine(
+                paths.TemplatesRoot,
+                viewModel.SelectedTemplate.TemplateId.ToString("D"),
+                asset.AssetPath!.Replace('/', Path.DirectorySeparatorChar));
+            Assert.Equal(original, await File.ReadAllBytesAsync(firstPackagePath));
+
+            byte[] replacement = [2, 4, 6, 8, 10];
+            string replacementPath = Path.Combine(root, "replacement.max");
+            await File.WriteAllBytesAsync(replacementPath, replacement);
+            viewModel.SelectedNode = asset;
+            await viewModel.ReplaceSelectedAssetAsync(replacementPath);
+            Assert.Equal("starter.max", asset.Name);
+            Assert.True(await viewModel.SaveCurrentTemplateAsync());
+            string replacementPackagePath = Path.Combine(
+                paths.TemplatesRoot,
+                viewModel.SelectedTemplate.TemplateId.ToString("D"),
+                asset.AssetPath!.Replace('/', Path.DirectorySeparatorChar));
+            Assert.Equal(replacement, await File.ReadAllBytesAsync(replacementPackagePath));
+            Assert.False(File.Exists(firstPackagePath));
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new TemplateLibraryStore(new EditorPaths(Path.GetTempPath())));
 }

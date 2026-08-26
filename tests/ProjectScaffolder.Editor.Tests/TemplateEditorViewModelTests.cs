@@ -82,6 +82,27 @@ public sealed class TemplateEditorViewModelTests
         Assert.Null(file.Collision);
     }
 
+    [Fact]
+    public void AttachedFileReplacementUpdatesPackageReferenceAndDirtyState()
+    {
+        EditorNodeViewModel asset = EditorNodeViewModel.CreateAssetFile(
+            Guid.CreateVersion7(),
+            "starter.max",
+            "assets/old/starter.max",
+            new string('a', 64));
+        TemplateEditorViewModel editor = new(CreateTemplate() with
+        {
+            Nodes = [asset.ToContract()],
+        });
+        EditorNodeViewModel loadedAsset = editor.Nodes[0];
+
+        loadedAsset.ReplaceAsset("assets/new/replacement.max", new string('b', 64));
+
+        Assert.True(editor.IsDirty);
+        Assert.Equal("replacement.max", loadedAsset.AssetFileName);
+        Assert.Contains(new string('b', 64), loadedAsset.AssetDigestDisplay, StringComparison.Ordinal);
+    }
+
     private static TemplateDocument CreateTemplate()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;

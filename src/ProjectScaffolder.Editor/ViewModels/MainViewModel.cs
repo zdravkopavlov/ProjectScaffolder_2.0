@@ -17,7 +17,7 @@ internal sealed class MainViewModel : ObservableObject
     {
         this.store = store;
         NewTemplateCommand = new RelayCommand(NewTemplate);
-        DuplicateTemplateCommand = new RelayCommand(DuplicateTemplate, () => SelectedTemplate is not null);
+        DuplicateTemplateCommand = new AsyncRelayCommand(DuplicateTemplateAsync, () => SelectedTemplate is not null);
         SaveTemplateCommand = new AsyncRelayCommand(SaveTemplateAsync, () => SelectedTemplate is { IsDirty: true, IsValid: true });
         AddFolderCommand = new RelayCommand(AddFolder, () => SelectedTemplate is not null);
         AddTextFileCommand = new RelayCommand(AddTextFile, () => SelectedTemplate is not null);
@@ -51,7 +51,7 @@ internal sealed class MainViewModel : ObservableObject
 
     public RelayCommand NewTemplateCommand { get; }
 
-    public RelayCommand DuplicateTemplateCommand { get; }
+    public AsyncRelayCommand DuplicateTemplateCommand { get; }
 
     public AsyncRelayCommand SaveTemplateCommand { get; }
 
@@ -150,6 +150,69 @@ internal sealed class MainViewModel : ObservableObject
         template.NotifyStructureChanged();
         SelectedNode = node;
         return true;
+    }
+
+    public async Task AttachFileAsync(string sourcePath)
+    {
+        if (SelectedTemplate is not TemplateEditorViewModel template)
+        {
+            return;
+        }
+
+        Guid nodeId = Guid.CreateVersion7();
+        try
+        {
+            StagedAsset staged = await store.StageAssetAsync(template.TemplateId, nodeId, sourcePath).ConfigureAwait(true);
+            EditorNodeViewModel asset = EditorNodeViewModel.CreateAssetFile(
+                nodeId,
+                staged.OriginalFileName,
+                staged.RelativePath,
+                staged.Sha256);
+            EditorNodeViewModel? parent = GetInsertionParent();
+            if (parent is null)
+            {
+                template.AddRoot(asset);
+            }
+            else
+            {
+                parent.AddChild(asset);
+            }
+
+            SortCollection(template.Nodes);
+            template.NotifyStructureChanged();
+            StatusMessage = $"Attached '{staged.OriginalFileName}'. Save the template to commit it to the package.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusMessage = $"Could not attach the file: {exception.Message}";
+        }
+    }
+
+    public async Task ReplaceSelectedAssetAsync(string sourcePath)
+    {
+        if (SelectedTemplate is not TemplateEditorViewModel template || SelectedNode is not { IsAssetFile: true } asset)
+        {
+            return;
+        }
+
+        try
+        {
+            StagedAsset staged = await store.StageAssetAsync(template.TemplateId, asset.NodeId, sourcePath).ConfigureAwait(true);
+            asset.ReplaceAsset(staged.RelativePath, staged.Sha256);
+            StatusMessage = $"Replaced the attached contents from '{staged.OriginalFileName}'. The project filename remains '{asset.Name}'.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            StatusMessage = $"Could not replace the attached file: {exception.Message}";
+        }
+    }
+
+    public void DiscardAllStaging()
+    {
+        foreach (Guid templateId in Templates.Select(item => item.TemplateId).Distinct())
+        {
+            store.DiscardStaging(templateId);
+        }
     }
 
     public string StatusMessage
@@ -275,16 +338,26 @@ internal sealed class MainViewModel : ObservableObject
         StatusMessage = "New unsaved template.";
     }
 
-    private void DuplicateTemplate()
+    private async Task DuplicateTemplateAsync()
     {
         if (SelectedTemplate is null)
         {
             return;
         }
 
-        TemplateEditorViewModel duplicate = TemplateEditorViewModel.Duplicate(SelectedTemplate);
-        AddEditor(duplicate);
-        StatusMessage = "Duplicated as a new unsaved template.";
+        TemplateEditorViewModel source = SelectedTemplate;
+        TemplateEditorViewModel duplicate = TemplateEditorViewModel.Duplicate(source);
+        try
+        {
+            await store.StageAssetsForDuplicateAsync(source.TemplateId, duplicate.Snapshot()).ConfigureAwait(true);
+            AddEditor(duplicate);
+            StatusMessage = "Duplicated as a new unsaved template, including its attached files.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            store.DiscardStaging(duplicate.TemplateId);
+            StatusMessage = $"Could not duplicate the template assets: {exception.Message}";
+        }
     }
 
     private void AddEditor(TemplateEditorViewModel editor)
