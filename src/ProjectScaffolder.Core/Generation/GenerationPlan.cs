@@ -9,7 +9,7 @@ public sealed record GenerationPlan(
 
 public abstract record GenerationOperation(Guid NodeId, string RelativePath, string FullPath);
 
-public sealed record CreateDirectoryOperation(Guid NodeId, string RelativePath, string FullPath)
+public sealed record CreateDirectoryOperation(Guid NodeId, string RelativePath, string FullPath, bool Hidden = false)
     : GenerationOperation(NodeId, RelativePath, FullPath);
 
 public abstract record CreateFileOperation(

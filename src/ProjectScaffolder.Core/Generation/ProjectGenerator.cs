@@ -69,6 +69,13 @@ public static class ProjectGenerator
                         {
                             Directory.CreateDirectory(directory.FullPath);
                             journal.RecordCreatedDirectory(directory.FullPath);
+                            if (directory.Hidden)
+                            {
+                                File.SetAttributes(
+                                    directory.FullPath,
+                                    File.GetAttributes(directory.FullPath) | FileAttributes.Hidden);
+                            }
+
                             createdDirectories++;
                         }
                         else

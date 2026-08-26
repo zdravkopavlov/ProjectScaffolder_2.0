@@ -217,6 +217,12 @@
                     </Border>
                     <ScrollViewer Grid.Row="1" Padding="12" VerticalScrollBarVisibility="Auto">
                         <StackPanel DataContext="{Binding SelectedNode}">
+                            <StackPanel Visibility="{Binding IsFolder, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <CheckBox Content="Hidden in Windows Explorer" IsChecked="{Binding IsHidden}" />
+                                <TextBlock Margin="0,6,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                           Text="Applied only when this template creates the folder. Existing folders are left unchanged."
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
                                 <ComboBox DisplayMemberPath="Label"

@@ -116,11 +116,16 @@ Every node has a stable UUIDv7 `nodeId`.
   "nodeId": "01993a6d-0001-7a10-8a01-000000000001",
   "type": "folder",
   "name": "SCENES",
+  "hidden": false,
   "children": []
 }
 ```
 
 - `children` is required and preserves user-defined order.
+- `hidden` is optional and defaults to `false` when absent, preserving compatibility with existing version 1 templates.
+- When `hidden` is `true`, the generator applies the Windows Hidden attribute only if it creates the folder.
+- A reused existing folder is never hidden or unhidden by generation.
+- The implicit project root cannot be hidden by a template.
 - Existing output directories are reused.
 - Folder nodes do not have a collision property.
 - A file occupying the required directory path is a blocking conflict.

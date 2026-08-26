@@ -81,6 +81,31 @@ public sealed class ProjectGeneratorIntegrationTests
         Assert.Empty(Directory.EnumerateFiles(workspace.TargetDirectory, "*.bak", SearchOption.AllDirectories));
     }
 
+    [Fact]
+    public async Task HiddenAttributeAppliesOnlyToNewFolders()
+    {
+        using TestWorkspace workspace = new();
+        TemplateDocument template = workspace.CreateTemplate([7, 8, 9]);
+        FolderNode scenes = Assert.IsType<FolderNode>(template.Nodes[0]);
+        FolderNode assets = Assert.IsType<FolderNode>(template.Nodes[1]);
+        template = template with
+        {
+            Nodes =
+            [
+                scenes with { Hidden = true },
+                assets with { Hidden = true },
+                .. template.Nodes.Skip(2),
+            ],
+        };
+        string existingAssets = Path.Combine(workspace.TargetDirectory, "ASSETS");
+        Directory.CreateDirectory(existingAssets);
+
+        await ProjectGenerator.GenerateAsync(workspace.CreateRequest(template));
+
+        Assert.True(File.GetAttributes(Path.Combine(workspace.TargetDirectory, "SCENES")).HasFlag(FileAttributes.Hidden));
+        Assert.False(File.GetAttributes(existingAssets).HasFlag(FileAttributes.Hidden));
+    }
+
     private sealed class TestWorkspace : IDisposable
     {
         private readonly string rootDirectory = Path.Combine(Path.GetTempPath(), "ProjectScaffolder.GeneratorTests", Guid.NewGuid().ToString("N"));

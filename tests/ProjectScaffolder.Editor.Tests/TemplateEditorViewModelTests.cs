@@ -83,6 +83,29 @@ public sealed class TemplateEditorViewModelTests
     }
 
     [Fact]
+    public void HiddenFolderRoundTripsAndMarksTemplateDirty()
+    {
+        TemplateEditorViewModel editor = new(CreateTemplate() with
+        {
+            Nodes =
+            [
+                new FolderNode
+                {
+                    NodeId = Guid.CreateVersion7(),
+                    Name = "CACHE",
+                    Children = [],
+                },
+            ],
+        });
+
+        editor.Nodes[0].IsHidden = true;
+
+        Assert.True(editor.IsDirty);
+        FolderNode snapshot = Assert.IsType<FolderNode>(editor.Snapshot().Nodes[0]);
+        Assert.True(snapshot.Hidden);
+    }
+
+    [Fact]
     public void AttachedFileReplacementUpdatesPackageReferenceAndDirtyState()
     {
         EditorNodeViewModel asset = EditorNodeViewModel.CreateAssetFile(

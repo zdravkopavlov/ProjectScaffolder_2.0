@@ -14,7 +14,7 @@ internal sealed record EditorPaths(string DataRoot)
 
     public string LibraryPath => Path.Combine(SettingsRoot, "template-library.json");
 
-    public string SeedMarkerPath => Path.Combine(SettingsRoot, "bundled-templates-v1.seeded");
+    public string SeedMarkerPath => Path.Combine(SettingsRoot, "bundled-templates-v2.seeded");
 
     public static EditorPaths FromArguments(string[] args)
     {

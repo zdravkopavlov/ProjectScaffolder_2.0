@@ -16,6 +16,7 @@ public sealed class GenerationPlanBuilderTests
             {
                 NodeId = Guid.CreateVersion7(Timestamp.AddMilliseconds(1)),
                 Name = "SCENES",
+                Hidden = true,
                 Children = [],
             },
             new TextFileNode
@@ -34,7 +35,12 @@ public sealed class GenerationPlanBuilderTests
 
         Assert.Collection(
             plan.Operations,
-            directory => Assert.Equal("SCENES", Assert.IsType<CreateDirectoryOperation>(directory).RelativePath),
+            directory =>
+            {
+                CreateDirectoryOperation folder = Assert.IsType<CreateDirectoryOperation>(directory);
+                Assert.Equal("SCENES", folder.RelativePath);
+                Assert.True(folder.Hidden);
+            },
             file =>
             {
                 CreateTextFileOperation textFile = Assert.IsType<CreateTextFileOperation>(file);

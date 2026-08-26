@@ -31,10 +31,10 @@ try {
         throw "The editor selection smoke test exited with code $($process.ExitCode)."
     }
 
-    $seededTemplate = Join-Path $testRoot 'Templates\01993a6c-f686-7e81-b530-35940e1b4072\template.json'
+    $seededTemplate = Join-Path $testRoot 'Templates\019c97d4-2000-7a10-8a01-000000000001\template.json'
     $library = Join-Path $testRoot 'Settings\template-library.json'
     if (-not (Test-Path -LiteralPath $seededTemplate -PathType Leaf)) {
-        throw 'The editor did not seed the bundled 3ds Max template.'
+        throw 'The editor did not seed the bundled Demo Project template.'
     }
 
     if (-not (Test-Path -LiteralPath $library -PathType Leaf)) {

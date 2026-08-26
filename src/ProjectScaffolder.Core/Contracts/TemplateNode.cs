@@ -15,6 +15,8 @@ public abstract record TemplateNode
 
 public sealed record FolderNode : TemplateNode
 {
+    public bool Hidden { get; init; }
+
     public required IReadOnlyList<TemplateNode> Children { get; init; }
 }
 

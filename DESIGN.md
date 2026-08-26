@@ -82,7 +82,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 - Avoid partial project creation where recovery is possible.
 - Preserve user templates during normal application upgrades and uninstallation.
 - Include automated tests for the template engine and path-safety rules.
-- Ship polished starter templates for 3ds Max, photogrammetry, and generic 3D production.
+- Ship one clear, generic `Demo Project` starter that demonstrates the core model without favoring a particular application.
 
 ### 4.2 Initial-release non-goals
 
@@ -151,6 +151,10 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-033 | The runner writes a compact structured log for successful and failed runs, retaining at most 100 files and 30 days. | Confirmed |
 | D-034 | The editor implementation uses WPF with an editor-local mutable view-model layer; Core contracts remain UI-independent and immutable. | Confirmed |
 | D-035 | Removing a saved template moves its complete package into an application-owned Trash folder instead of permanently deleting it. | Confirmed |
+| D-036 | Folder nodes may request the Windows Hidden attribute; it applies only to newly created folders and never changes reused folders or the project root. | Confirmed |
+| D-037 | Fresh installations seed one generic `Demo Project`; specialized DCC templates remain user-created examples rather than bundled product assumptions. | Confirmed |
+| D-038 | Uninstall preserves local user data by default and offers a default-No prompt to remove templates, settings, logs, staging data, and Trash. Generated projects are never removed. | Confirmed |
+| D-039 | `.projectThumbnail.jpg` is reserved as an optional future catalog-managed root convention. Project Scaffolder does not create or manage it. | Confirmed |
 
 ## 7. User workflows
 
@@ -356,7 +360,7 @@ Explorer enabled state and menu order are local library settings, not template p
 
 ### 10.2 Version 1 contract
 
-The proposed exact version 1 contract is documented in [`JSON-CONTRACT.md`](JSON-CONTRACT.md) and enforced structurally by [`schemas/template-v1.schema.json`](schemas/template-v1.schema.json). A complete valid example is [`examples/3ds-max-template.json`](examples/3ds-max-template.json).
+The exact version 1 contract is documented in [`JSON-CONTRACT.md`](JSON-CONTRACT.md) and enforced structurally by [`schemas/template-v1.schema.json`](schemas/template-v1.schema.json). Complete valid examples include the bundled generic [`examples/demo-template.json`](examples/demo-template.json) and the specialized [`examples/3ds-max-template.json`](examples/3ds-max-template.json).
 
 The persisted top-level shape is:
 
@@ -407,15 +411,15 @@ The persisted top-level shape is:
 
 Arbitrary executable hooks are deliberately excluded.
 
+A folder may optionally request the Windows Hidden attribute. The property is conservative: it is applied only when generation creates that folder. Existing directories are reused without changing their attributes, and the implicit project root has no attribute option.
+
 The engine and editor use only generic node concepts. They contain no MXP-specific model, parser, tab, or generator. MXP, Maya `workspace.mel`, Unreal `.uproject`, Godot `project.godot`, production notes, manifests, and similar formats are represented as ordinary editable text files. Binary DCC starter scenes and other immutable resources are represented as attached asset files.
 
 ### 10.4 Bundled starter templates
 
-The initial installation should demonstrate the generic model with:
+The initial installation demonstrates the generic model with one `Demo Project` containing nested folders, a hidden working-cache folder, and a variable-driven `README.txt`. It is intentionally understandable without 3ds Max or another specialist application.
 
-- A polished `3ds Max Project` template containing the agreed production folders and an editable `{{project_name}}.mxp` text file.
-- A `Photogrammetry Project` template covering capture, processing, exports, references, logs, and delivery.
-- A `Generic 3D Production` template that is not tied to a specific DCC application.
+The 3ds Max contract example remains in the repository as evidence that DCC-specific workflows fit the generic model, but it is not seeded into new user libraries.
 
 Bundled templates are ordinary version 1 templates. Users may inspect, duplicate, edit, export, unregister, or delete their user-owned copies. Application upgrades never overwrite modified user copies.
 
@@ -960,7 +964,8 @@ Deferred beyond the initial release: clipboard operations, delete undo, manual l
 - [x] Build per-user self-contained installer executable.
 - [x] Add Start menu and uninstall entries.
 - [x] Seed default templates safely and refresh Explorer registration during setup.
-- [ ] Test install, upgrade, repair, and uninstall.
+- [x] Preserve user data by default and offer an explicit default-No removal choice during uninstall.
+- [ ] Test upgrade, repair, and the new optional user-data removal path on a second machine.
 
 ### Milestone 6 — Hardening and release
 
@@ -1018,6 +1023,12 @@ A future indexer should be able to:
 
 The metadata schema should remain small. Database-specific fields such as client, status, assignee, or billing code should not be added without a separate design decision.
 
+### 25.1 Future project thumbnail convention
+
+A future catalog may create an optional `.projectThumbnail.jpg` in the project root. That catalog owns capture/import, resizing, validation, replacement, and the Windows Hidden attribute. It may also keep a central cache keyed by `projectId` for fast browsing while treating the root file as the portable project thumbnail.
+
+Project Scaffolder only reserves and documents this convention. It does not create an empty thumbnail, ask for one in the template editor, or add thumbnail-generation scope to the scaffolding workflow.
+
 ## 26. Decision log
 
 | Date | Decision | Reason |
@@ -1052,6 +1063,10 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Refocus the initial release on defining structures, including files, registering templates, and generating silently from Explorer; defer editor conveniences and disposable generation. | Project Scaffolder is a focused scaffolding utility, not a miniature IDE. This decision supersedes the disposable-generation decision above and moves active work to Explorer integration. |
 | 2026-08-24 | Implement the classic menu as two per-user static cascades maintained by the editor. | Separate background (`%V`) and selected-folder (`%1`) command sets preserve the direct in-place workflow without elevation, COM code, or generation inside Explorer. |
 | 2026-08-25 | Use Inno Setup 6 for the initial per-user installer. | It creates a conventional setup executable, supports lowest-privilege Local AppData installation, upgrades and uninstall, integrates with the checked-in build script, and does not force MSIX or modern-menu scope. |
+| 2026-08-25 | Add conservative hidden-folder support to the generic folder node. | Artists may want cache or support folders out of normal Explorer views, but generation must not alter attributes on pre-existing directories. |
+| 2026-08-25 | Replace the bundled 3ds Max starter with one generic Demo Project. | The installed first impression should explain the general scaffolding model rather than imply that the application is dedicated to one DCC package. |
+| 2026-08-25 | Prompt optionally for local-data removal during uninstall, defaulting to preservation. | Templates and attached assets are user work; removal should be available but never implicit. Generated projects remain outside installer ownership. |
+| 2026-08-25 | Reserve `.projectThumbnail.jpg` for a future catalog and keep it out of scaffolder behavior. | A catalog is the right owner for thumbnail capture, normalization, caching, and replacement; the scaffolder should stay focused. |
 
 ## 27. Authoritative references
 

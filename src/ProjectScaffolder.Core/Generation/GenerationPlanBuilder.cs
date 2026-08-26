@@ -95,7 +95,7 @@ public static class GenerationPlanBuilder
             switch (node)
             {
                 case FolderNode folder:
-                    operations.Add(new CreateDirectoryOperation(folder.NodeId, relativePath, fullPath));
+                    operations.Add(new CreateDirectoryOperation(folder.NodeId, relativePath, fullPath, folder.Hidden));
                     BuildNodes(folder.Children, components, $"{nodePath}.children", defaultCollision, context, variables, outputs, operations, issues);
                     break;
                 case TextFileNode textFile:

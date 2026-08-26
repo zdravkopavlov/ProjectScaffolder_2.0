@@ -32,6 +32,16 @@ public sealed class ContractExamplesTests
     }
 
     [Fact]
+    public void DemoTemplateIsValidAndDemonstratesHiddenFolder()
+    {
+        TemplateDocument template = ValidatedContractReader.ReadTemplate(ReadExample("demo-template.json"));
+
+        Assert.Equal("Demo Project", template.Name);
+        Assert.Contains(template.Nodes.OfType<FolderNode>(), folder => folder.Hidden);
+        Assert.Contains(template.Nodes.OfType<TextFileNode>(), file => file.Name == "README.txt");
+    }
+
+    [Fact]
     public void ApprovedTemplateLibraryExampleIsValid()
     {
         string json = ReadExample("template-library.json");
