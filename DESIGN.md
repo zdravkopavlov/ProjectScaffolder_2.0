@@ -333,6 +333,8 @@ The editor provides:
 - A list of warnings and errors.
 - A single `Test template...` workflow that first shows resolved names, paths, contents, and collision warnings using a configurable sample folder.
 - An optional second step in that workflow that generates a disposable project in a temporary location for inspection.
+- Editable text supports a compact, case-insensitive literal find/replace panel, including `Ctrl+F`, Find next, Replace, and Replace all.
+- Disposable generation is always an explicit second action, uses the production generator with current unsaved edits and staged attachments, and offers Open folder and Delete test project controls. Closing the preview does not silently delete a project the user may be inspecting.
 - Clear distinction between blocking errors and advisory warnings.
 
 The editor follows the current Windows appearance by default. Settings may override this with explicit Light or Dark modes. All three modes are initial-release requirements.
@@ -945,7 +947,7 @@ Current verified editor slice:
 - [ ] Add clipboard operations and in-session delete undo.
 - [ ] Complete library ordering, folder import, and template package import/export.
 - [x] Add variable insertion for inline names and editable text, plus a non-mutating resolved preview.
-- [ ] Add text search/replace and optional disposable test generation.
+- [x] Add text search/replace and optional disposable test generation.
 
 ### Milestone 4 — Classic Explorer integration
 
@@ -1050,6 +1052,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Make template removal recoverable through an application Trash folder. | Templates may contain valuable attached assets; moving the complete package out of the active library provides immediate removal without making an accidental confirmation permanently destructive. |
 | 2026-08-24 | Stage newly attached and replacement files outside saved template packages until Save succeeds. | Content-addressed managed paths preserve the last saved asset reference during editing, avoid abandoned partial packages, permit safe replacement cleanup, and let duplication copy assets independently. |
 | 2026-08-24 | Make the first `Test template...` step a non-mutating resolved preview with an editable sample target path. | Users can verify variable values, output paths, text contents, attachment integrity, and collision outcomes before the optional disposable-generation step is added. |
+| 2026-08-24 | Keep preview non-mutating and make disposable generation a separate explicit action using the production generator. | This tests the actual filesystem behavior, including unsaved edits and staged assets, while keeping ordinary preview safe; generated workspaces can be opened and are deleted only on explicit request. |
 
 ## 27. Authoritative references
 

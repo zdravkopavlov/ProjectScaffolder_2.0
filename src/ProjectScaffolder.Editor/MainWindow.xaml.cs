@@ -484,6 +484,74 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ToggleSearch_Click(object sender, RoutedEventArgs e) => ShowSearchPanel();
+
+    private void CloseSearch_Click(object sender, RoutedEventArgs e)
+    {
+        SearchPanel.Visibility = Visibility.Collapsed;
+        TextContentEditor.Focus();
+    }
+
+    private void FindNext_Click(object sender, RoutedEventArgs e) => FindNextMatch();
+
+    private void Replace_Click(object sender, RoutedEventArgs e)
+    {
+        string query = FindTextBox.Text;
+        if (query.Length > 0 && TextContentEditor.SelectionLength == query.Length &&
+            string.Equals(TextContentEditor.SelectedText, query, StringComparison.OrdinalIgnoreCase))
+        {
+            int start = TextContentEditor.SelectionStart;
+            TextContentEditor.SelectedText = ReplaceTextBox.Text;
+            TextContentEditor.CaretIndex = start + ReplaceTextBox.Text.Length;
+            SearchStatusText.Text = "Replaced one match.";
+        }
+
+        FindNextMatch();
+    }
+
+    private void ReplaceAll_Click(object sender, RoutedEventArgs e)
+    {
+        (string text, int count) = TextSearchService.ReplaceAll(TextContentEditor.Text, FindTextBox.Text, ReplaceTextBox.Text);
+        if (count > 0)
+        {
+            TextContentEditor.Text = text;
+            TextContentEditor.CaretIndex = 0;
+        }
+
+        SearchStatusText.Text = count == 1 ? "Replaced 1 match." : $"Replaced {count} matches.";
+        TextContentEditor.Focus();
+    }
+
+    private void ShowSearchPanel()
+    {
+        SearchPanel.Visibility = Visibility.Visible;
+        if (TextContentEditor.SelectionLength > 0)
+        {
+            FindTextBox.Text = TextContentEditor.SelectedText;
+        }
+
+        FindTextBox.Focus();
+        FindTextBox.SelectAll();
+    }
+
+    private void FindNextMatch()
+    {
+        int start = TextContentEditor.SelectionLength > 0
+            ? TextContentEditor.SelectionStart + TextContentEditor.SelectionLength
+            : TextContentEditor.CaretIndex;
+        int index = TextSearchService.FindNext(TextContentEditor.Text, FindTextBox.Text, start);
+        if (index < 0)
+        {
+            SearchStatusText.Text = string.IsNullOrEmpty(FindTextBox.Text) ? "Enter text to find." : "No matches found.";
+            return;
+        }
+
+        TextContentEditor.Focus();
+        TextContentEditor.Select(index, FindTextBox.Text.Length);
+        TextContentEditor.ScrollToLine(TextContentEditor.GetLineIndexFromCharacterIndex(index));
+        SearchStatusText.Text = index < start ? "Found a match (wrapped to the beginning)." : "Found a match.";
+    }
+
     private void ShowVariableMenu(TextBox target, UIElement placementTarget)
     {
         variableInsertionTarget = target;
@@ -583,7 +651,12 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.F2 && ViewModel.RenameNodeCommand.CanExecute(null))
+        if (e.Key == Key.F && Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && ViewModel.SelectedNode?.IsTextFile == true)
+        {
+            ShowSearchPanel();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F2 && ViewModel.RenameNodeCommand.CanExecute(null))
         {
             CancelPendingMouseRename();
             ViewModel.RenameNodeCommand.Execute(null);

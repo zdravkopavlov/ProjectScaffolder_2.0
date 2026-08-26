@@ -26,3 +26,8 @@ internal sealed record ResolvedPreviewResult(
         ? $"Preview blocked by {Errors.Count} error{(Errors.Count == 1 ? string.Empty : "s")}."
         : $"Resolved {Items.Count} output{(Items.Count == 1 ? string.Empty : "s")} without writing to disk.";
 }
+
+internal sealed record DisposableGenerationResult(
+    string WorkspacePath,
+    string ProjectPath,
+    string Summary);

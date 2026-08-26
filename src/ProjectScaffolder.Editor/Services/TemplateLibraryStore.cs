@@ -198,6 +198,37 @@ internal sealed class TemplateLibraryStore(EditorPaths paths)
         return new ContractValidationResult(issues);
     }
 
+    public async Task<string> CreateDisposablePackageAsync(
+        TemplateDocument document,
+        string packageRoot,
+        CancellationToken cancellationToken = default)
+    {
+        string root = Path.GetFullPath(packageRoot);
+        Directory.CreateDirectory(root);
+        string templateDirectory = Path.Combine(root, document.TemplateId.ToString("D"));
+        Directory.CreateDirectory(templateDirectory);
+        foreach (AssetFileNode asset in FlattenAssets(document.Nodes))
+        {
+            string sourcePath = ResolveAvailableAssetPath(document.TemplateId, asset.Asset.Path);
+            string destinationPath = PathSafety.ResolveDescendant(templateDirectory, asset.Asset.Path.Split('/'));
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            await CopyFileAsync(sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
+        }
+
+        ContractValidationResult assets = TemplateAssetValidator.Validate(document, templateDirectory);
+        if (!assets.IsValid)
+        {
+            throw new ContractValidationException("The disposable template package contains invalid attached files.", assets.Issues);
+        }
+
+        await AtomicJsonFile.SaveAsync(
+            Path.Combine(templateDirectory, "template.json"),
+            ContractJson.Serialize(document),
+            false,
+            cancellationToken).ConfigureAwait(false);
+        return templateDirectory;
+    }
+
     public void DiscardStaging(Guid templateId)
     {
         string directory = GetStagingDirectory(templateId);
