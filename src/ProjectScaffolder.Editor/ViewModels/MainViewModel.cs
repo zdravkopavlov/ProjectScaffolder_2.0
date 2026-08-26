@@ -23,6 +23,7 @@ internal sealed class MainViewModel : ObservableObject
         AddTextFileCommand = new RelayCommand(AddTextFile, () => SelectedTemplate is not null);
         DeleteNodeCommand = new RelayCommand(DeleteNode, () => SelectedTemplate is not null && SelectedNode is not null);
         RenameNodeCommand = new RelayCommand(RenameNode, () => SelectedNode is not null);
+        SortNodesCommand = new RelayCommand(SortNodes, () => SelectedTemplate is not null);
         MoveNodeUpCommand = new RelayCommand(() => MoveNode(-1), CanMoveNodeUp);
         MoveNodeDownCommand = new RelayCommand(() => MoveNode(1), CanMoveNodeDown);
     }
@@ -64,6 +65,8 @@ internal sealed class MainViewModel : ObservableObject
     public RelayCommand DeleteNodeCommand { get; }
 
     public RelayCommand RenameNodeCommand { get; }
+
+    public RelayCommand SortNodesCommand { get; }
 
     public RelayCommand MoveNodeUpCommand { get; }
 
@@ -318,7 +321,6 @@ internal sealed class MainViewModel : ObservableObject
         }
 
         template.NotifyStructureChanged();
-        SelectedNode = folder;
     }
 
     private void AddTextFile()
@@ -336,7 +338,6 @@ internal sealed class MainViewModel : ObservableObject
         }
 
         template.NotifyStructureChanged();
-        SelectedNode = file;
     }
 
     private void DeleteNode()
@@ -357,6 +358,37 @@ internal sealed class MainViewModel : ObservableObject
     }
 
     private void RenameNode() => SelectedNode?.BeginRename();
+
+    private void SortNodes()
+    {
+        TemplateEditorViewModel template = SelectedTemplate!;
+        SortCollection(template.Nodes);
+        template.NotifyStructureChanged();
+        StatusMessage = "Structure sorted with folders first, then files, alphabetically.";
+        NotifyCommandStates();
+    }
+
+    private static void SortCollection(ObservableCollection<EditorNodeViewModel> nodes)
+    {
+        foreach (EditorNodeViewModel folder in nodes.Where(node => node.Kind == EditorNodeKind.Folder))
+        {
+            SortCollection(folder.Children);
+        }
+
+        EditorNodeViewModel[] ordered = nodes
+            .OrderBy(node => node.Kind == EditorNodeKind.Folder ? 0 : 1)
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(node => node.Name, StringComparer.Ordinal)
+            .ToArray();
+        for (int targetIndex = 0; targetIndex < ordered.Length; targetIndex++)
+        {
+            int currentIndex = nodes.IndexOf(ordered[targetIndex]);
+            if (currentIndex != targetIndex)
+            {
+                nodes.Move(currentIndex, targetIndex);
+            }
+        }
+    }
 
     private void MoveNode(int offset)
     {
@@ -457,6 +489,7 @@ internal sealed class MainViewModel : ObservableObject
         AddTextFileCommand.NotifyCanExecuteChanged();
         DeleteNodeCommand.NotifyCanExecuteChanged();
         RenameNodeCommand.NotifyCanExecuteChanged();
+        SortNodesCommand.NotifyCanExecuteChanged();
         MoveNodeUpCommand.NotifyCanExecuteChanged();
         MoveNodeDownCommand.NotifyCanExecuteChanged();
     }

@@ -28,16 +28,23 @@ public partial class MainWindow : Window
     private void StructureTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) =>
         ViewModel.SelectedNode = e.NewValue as EditorNodeViewModel;
 
-    private void ProjectRoot_Click(object sender, RoutedEventArgs e)
+    private void ProjectRoot_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         ClearTreeSelection(StructureTree);
         ViewModel.SelectedNode = null;
+        e.Handled = true;
     }
 
     private void StructureTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         dragStartPoint = e.GetPosition(StructureTree);
-        dragCandidate = FindVisualAncestor<TreeViewItem>(e.OriginalSource as DependencyObject)?.DataContext as EditorNodeViewModel;
+        TreeViewItem? clickedItem = FindVisualAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        dragCandidate = clickedItem?.DataContext as EditorNodeViewModel;
+        if (clickedItem is null)
+        {
+            ClearTreeSelection(StructureTree);
+            ViewModel.SelectedNode = null;
+        }
     }
 
     private void StructureTree_PreviewMouseMove(object sender, MouseEventArgs e)

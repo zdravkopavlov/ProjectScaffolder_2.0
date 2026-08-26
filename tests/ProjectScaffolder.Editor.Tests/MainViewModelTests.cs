@@ -30,9 +30,10 @@ public sealed class MainViewModelTests
         MainViewModel viewModel = CreateViewModel();
         viewModel.NewTemplateCommand.Execute(null);
         viewModel.AddFolderCommand.Execute(null);
-        EditorNodeViewModel folder = viewModel.SelectedNode!;
+        EditorNodeViewModel folder = viewModel.SelectedTemplate!.Nodes[0];
+        viewModel.SelectedNode = folder;
         viewModel.AddTextFileCommand.Execute(null);
-        EditorNodeViewModel firstFile = viewModel.SelectedNode!;
+        EditorNodeViewModel firstFile = folder.Children[0];
 
         viewModel.SelectedNode = firstFile;
         viewModel.AddTextFileCommand.Execute(null);
@@ -47,10 +48,9 @@ public sealed class MainViewModelTests
         MainViewModel viewModel = CreateViewModel();
         viewModel.NewTemplateCommand.Execute(null);
         viewModel.AddFolderCommand.Execute(null);
-        EditorNodeViewModel first = viewModel.SelectedNode!;
-        viewModel.SelectedNode = null;
+        EditorNodeViewModel first = viewModel.SelectedTemplate!.Nodes[0];
         viewModel.AddFolderCommand.Execute(null);
-        EditorNodeViewModel second = viewModel.SelectedNode!;
+        EditorNodeViewModel second = viewModel.SelectedTemplate.Nodes[1];
 
         Assert.True(viewModel.MoveNode(second, null, 0));
         Assert.Same(second, viewModel.SelectedTemplate!.Nodes[0]);
@@ -66,9 +66,10 @@ public sealed class MainViewModelTests
         MainViewModel viewModel = CreateViewModel();
         viewModel.NewTemplateCommand.Execute(null);
         viewModel.AddFolderCommand.Execute(null);
-        EditorNodeViewModel parent = viewModel.SelectedNode!;
+        EditorNodeViewModel parent = viewModel.SelectedTemplate!.Nodes[0];
+        viewModel.SelectedNode = parent;
         viewModel.AddFolderCommand.Execute(null);
-        EditorNodeViewModel child = viewModel.SelectedNode!;
+        EditorNodeViewModel child = parent.Children[0];
 
         Assert.False(viewModel.CanMoveNode(parent, child));
         Assert.False(viewModel.MoveNode(parent, child, 0));
@@ -81,10 +82,50 @@ public sealed class MainViewModelTests
         MainViewModel viewModel = CreateViewModel();
         viewModel.NewTemplateCommand.Execute(null);
         viewModel.AddFolderCommand.Execute(null);
+        viewModel.SelectedNode = viewModel.SelectedTemplate!.Nodes[0];
 
         viewModel.RenameNodeCommand.Execute(null);
 
         Assert.True(viewModel.SelectedNode!.IsEditing);
+    }
+
+    [Fact]
+    public void RepeatedAddsKeepTheOriginalFolderSelected()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        viewModel.AddFolderCommand.Execute(null);
+        EditorNodeViewModel parent = viewModel.SelectedTemplate!.Nodes[0];
+        viewModel.SelectedNode = parent;
+
+        viewModel.AddFolderCommand.Execute(null);
+        viewModel.AddFolderCommand.Execute(null);
+        viewModel.AddFolderCommand.Execute(null);
+
+        Assert.Same(parent, viewModel.SelectedNode);
+        Assert.Equal(3, parent.Children.Count);
+        Assert.All(parent.Children, child => Assert.Empty(child.Children));
+    }
+
+    [Fact]
+    public void SortOrdersEveryLevelWithFoldersBeforeFiles()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        TemplateEditorViewModel template = viewModel.SelectedTemplate!;
+        EditorNodeViewModel zFolder = EditorNodeViewModel.CreateFolder("zebra");
+        zFolder.AddChild(EditorNodeViewModel.CreateTextFile("alpha.txt"));
+        zFolder.AddChild(EditorNodeViewModel.CreateFolder("Zulu"));
+        zFolder.AddChild(EditorNodeViewModel.CreateFolder("alpha"));
+        template.AddRoot(EditorNodeViewModel.CreateTextFile("alpha.txt"));
+        template.AddRoot(zFolder);
+        template.AddRoot(EditorNodeViewModel.CreateFolder("Alpha"));
+        template.AddRoot(EditorNodeViewModel.CreateTextFile("Beta.txt"));
+
+        viewModel.SortNodesCommand.Execute(null);
+
+        Assert.Equal(["Alpha", "zebra", "alpha.txt", "Beta.txt"], template.Nodes.Select(node => node.Name));
+        Assert.Equal(["alpha", "Zulu", "alpha.txt"], zFolder.Children.Select(node => node.Name));
     }
 
     private static MainViewModel CreateViewModel() =>

@@ -144,6 +144,7 @@
                         <Button Command="{Binding MoveNodeUpCommand}" Content="Move up" />
                         <Button Command="{Binding MoveNodeDownCommand}" Content="Move down" />
                         <Button Command="{Binding RenameNodeCommand}" Content="Rename" ToolTip="Rename the selected item (F2)." />
+                        <Button Command="{Binding SortNodesCommand}" Content="Sort A–Z" ToolTip="Sort every level with folders first, followed by files." />
                         <Button Command="{Binding DeleteNodeCommand}" Content="Delete item" />
                     </StackPanel>
                     <Grid Grid.Row="2" Margin="10,0,10,10">
@@ -151,27 +152,33 @@
                             <RowDefinition Height="42" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Button Click="ProjectRoot_Click" Margin="0" Padding="7,0" BorderThickness="0,0,0,1" AllowDrop="True"
-                                BorderBrush="{DynamicResource BorderBrush}" HorizontalContentAlignment="Stretch"
+                        <Border Padding="11,0" BorderThickness="0,0,0,1" AllowDrop="True"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                MouseLeftButtonDown="ProjectRoot_MouseLeftButtonDown"
                                 DragOver="ProjectRoot_DragOver" Drop="ProjectRoot_Drop"
                                 ToolTip="Select the project root to add first-level folders and files.">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="Transparent" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsProjectRootSelected}" Value="True">
                                             <Setter Property="Background" Value="{DynamicResource AccentSelectionBrush}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Button.Style>
+                            </Border.Style>
                             <Grid>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Margin="4,0,9,0" Text="□" Foreground="{DynamicResource SecondaryTextBrush}" />
-                                    <TextBlock FontWeight="SemiBold" Text="{}{{project_name}}" />
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock Width="23" Text="□" Foreground="{DynamicResource SecondaryTextBrush}" />
+                                    <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}" Text="{}{{project_name}}" />
                                 </StackPanel>
-                                <TextBlock HorizontalAlignment="Right" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Text="target folder" />
+                                <TextBlock Grid.Column="1" Margin="12,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11" Text="project root" />
                             </Grid>
-                        </Button>
+                        </Border>
                         <TreeView x:Name="StructureTree" Grid.Row="1" Padding="9" ItemsSource="{Binding SelectedTemplate.Nodes}" AllowDrop="True"
                                   PreviewMouseLeftButtonDown="StructureTree_PreviewMouseLeftButtonDown"
                                   PreviewMouseMove="StructureTree_PreviewMouseMove" DragOver="StructureTree_DragOver" Drop="StructureTree_Drop"
@@ -194,10 +201,8 @@
                     </Border>
                     <ScrollViewer Grid.Row="1" Padding="12" VerticalScrollBarVisibility="Auto">
                         <StackPanel DataContext="{Binding SelectedNode}">
-                            <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Name" />
-                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <TextBlock Margin="0,13,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
+                                <TextBlock Margin="0,0,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="If the file exists" />
                                 <ComboBox DisplayMemberPath="Label"
                                           ItemsSource="{Binding DataContext.FileCollisionChoices, RelativeSource={RelativeSource AncestorType=Window}}"
                                           SelectedValue="{Binding Collision}"
