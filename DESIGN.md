@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.1 |
+| Document version | 1.2 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -82,6 +82,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 - Avoid partial project creation where recovery is possible.
 - Preserve user templates during normal application upgrades and uninstallation.
 - Include automated tests for the template engine and path-safety rules.
+- Ship polished starter templates for 3ds Max, photogrammetry, and generic 3D production.
 
 ### 4.2 Initial-release non-goals
 
@@ -142,6 +143,7 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-025 | Explorer enablement and order are local library state and are not exported inside templates; new/imported templates begin disabled. | Confirmed |
 | D-026 | Version 1 supports `skip`, explicit `overwrite`, and `fail` file-collision policies, with `skip` as the default. | Confirmed |
 | D-027 | Template and node identities use stable UUIDv7 values; version 1 variables are lowercase and case-sensitive. | Confirmed |
+| D-028 | The product is an artist-first generic scaffolder: 3ds Max is a polished starter use case, not a specialized engine or editor mode. | Confirmed |
 
 ## 7. User workflows
 
@@ -390,13 +392,25 @@ The persisted top-level shape is:
 
 Arbitrary executable hooks are deliberately excluded.
 
-### 10.4 Template packaging
+The engine and editor use only generic node concepts. They contain no MXP-specific model, parser, tab, or generator. MXP, Maya `workspace.mel`, Unreal `.uproject`, Godot `project.godot`, production notes, manifests, and similar formats are represented as ordinary editable text files. Binary DCC starter scenes and other immutable resources are represented as attached asset files.
+
+### 10.4 Bundled starter templates
+
+The initial installation should demonstrate the generic model with:
+
+- A polished `3ds Max Project` template containing the agreed production folders and an editable `{{project_name}}.mxp` text file.
+- A `Photogrammetry Project` template covering capture, processing, exports, references, logs, and delivery.
+- A `Generic 3D Production` template that is not tied to a specific DCC application.
+
+Bundled templates are ordinary version 1 templates. Users may inspect, duplicate, edit, export, unregister, or delete their user-owned copies. Application upgrades never overwrite modified user copies.
+
+### 10.5 Template packaging
 
 A managed template is stored as `%LOCALAPPDATA%\ProjectScaffolder\Templates\<templateId>\template.json` with an optional sibling `assets` directory.
 
 Asset references include a relative path and SHA-256 digest. Export and import will package `template.json` and `assets` into a single archive with a product-specific extension that remains an open decision.
 
-### 10.5 Template versioning
+### 10.6 Template versioning
 
 - `schemaVersion` describes the application-level JSON contract.
 - `templateVersion` describes the user's revision of a specific template.
@@ -983,6 +997,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Install per user under `%LOCALAPPDATA%\Programs` and keep templates/settings in non-roaming `%LOCALAPPDATA%`. | This matches the per-user Explorer registration model, avoids UAC, simplifies updates, and prevents large attached assets from roaming with a Windows profile. |
 | 2026-08-24 | Approve design baseline version 1.0 for implementation. | The product workflow, platform, identity contract, safety defaults, storage model, and initial scope have been reviewed and accepted. |
 | 2026-08-24 | Approve JSON contract version 1 and design revision 1.1. | Strict schemas, stable identities, separated local Explorer state, deterministic variables, and explicit file behavior provide a testable implementation contract. |
+| 2026-08-24 | Position Project Scaffolder as artist-first but keep its engine and editor generic. | The primary user receives excellent 3ds Max and photogrammetry workflows while the same folder, text, asset, and variable model remains useful across other DCC and non-art projects. |
 
 ## 27. Authoritative references
 
