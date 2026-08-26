@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Document status | Living design — approved baseline |
+| Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.0 |
+| Document version | 1.1 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -138,6 +138,10 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-021 | Existing generated files are skipped by default, while existing folders are safely reused. | Confirmed |
 | D-022 | Initial structure nodes include folders, empty files, templated text files, and attached asset files copied verbatim. | Confirmed |
 | D-023 | Project Scaffolder uses a per-user, non-elevated installation under `%LOCALAPPDATA%\Programs\ProjectScaffolder`; user templates and settings use `%LOCALAPPDATA%\ProjectScaffolder`. | Confirmed |
+| D-024 | JSON contract version 1 is defined jointly by `JSON-CONTRACT.md` and the strict Draft 2020-12 schemas under `schemas`. | Confirmed |
+| D-025 | Explorer enablement and order are local library state and are not exported inside templates; new/imported templates begin disabled. | Confirmed |
+| D-026 | Version 1 supports `skip`, explicit `overwrite`, and `fail` file-collision policies, with `skip` as the default. | Confirmed |
+| D-027 | Template and node identities use stable UUIDv7 values; version 1 variables are lowercase and case-sensitive. | Confirmed |
 
 ## 7. User workflows
 
@@ -223,7 +227,7 @@ Command construction must quote executable paths, target paths, and template ide
 
 ### 8.2 Registration model
 
-Registration is represented in application data rather than inferred solely from the Registry. Each template contains a stable ID and an `enabledInExplorer` setting.
+Registration is represented in application data rather than inferred solely from the Registry. Each template contains a stable ID; the per-user template-library document stores Explorer enablement and menu order separately.
 
 The editor generates the current submenu from enabled templates. Template names may change without changing template identity. A registration refresh must remove stale application-owned child entries while preserving unrelated Registry content.
 
@@ -326,14 +330,17 @@ A template is a versioned JSON document with:
 - Stable template ID.
 - Display name and optional description.
 - Template revision number.
-- Explorer enabled state and order.
 - A recursive tree of folder and file nodes.
 - Default collision behavior.
 - Optional template-specific variables in the future.
 
-### 10.2 Proposed conceptual schema
+Explorer enabled state and menu order are local library settings, not template properties. They do not travel with exported templates.
 
-This example illustrates the intended model. Exact property names remain subject to design review before implementation.
+### 10.2 Version 1 contract
+
+The proposed exact version 1 contract is documented in [`JSON-CONTRACT.md`](JSON-CONTRACT.md) and enforced structurally by [`schemas/template-v1.schema.json`](schemas/template-v1.schema.json). A complete valid example is [`examples/3ds-max-template.json`](examples/3ds-max-template.json).
+
+The persisted top-level shape is:
 
 ```json
 {
@@ -342,27 +349,29 @@ This example illustrates the intended model. Exact property names remain subject
   "name": "3ds Max Project",
   "description": "Standard 3ds Max production structure",
   "templateVersion": 1,
-  "enabledInExplorer": true,
-  "explorerOrder": 10,
+  "createdAtUtc": "2026-08-24T12:30:00.000Z",
+  "modifiedAtUtc": "2026-08-24T12:30:00.000Z",
   "defaultFileCollision": "skip",
   "nodes": [
     {
+      "nodeId": "01993a6d-0001-7a10-8a01-000000000001",
       "type": "folder",
       "name": "SCENES",
       "children": []
     },
     {
+      "nodeId": "01993a6d-0002-7a10-8a01-000000000002",
       "type": "folder",
       "name": "RENDERS",
       "children": []
     },
     {
+      "nodeId": "01993a6d-0004-7a10-8a01-000000000004",
       "type": "textFile",
       "name": "{{project_name}}.mxp",
       "encoding": "utf-8",
-      "lineEndings": "windows",
-      "collision": "skip",
-      "content": "[Directories]\r\nProjectFolder={{project_path}}\r\nScenes=.\\SCENES\r\nRenderOutput=.\\RENDERS\r\n"
+      "lineEndings": "crlf",
+      "content": "[Directories]\nProjectFolder={{project_path}}\nScenes=.\\SCENES\nRenderOutput=.\\RENDERS\n"
     }
   ]
 }
@@ -383,23 +392,24 @@ Arbitrary executable hooks are deliberately excluded.
 
 ### 10.4 Template packaging
 
-A template containing only folders and inline text may be stored as one JSON file. A template containing attached assets needs a portable package format.
+A managed template is stored as `%LOCALAPPDATA%\ProjectScaffolder\Templates\<templateId>\template.json` with an optional sibling `assets` directory.
 
-**Proposed direction:** Store editable templates in application-managed directories containing `template.json` plus an `assets` directory. Export and import them as a single archive with a distinct extension. The final extension and archive layout are open decisions.
+Asset references include a relative path and SHA-256 digest. Export and import will package `template.json` and `assets` into a single archive with a product-specific extension that remains an open decision.
 
 ### 10.5 Template versioning
 
 - `schemaVersion` describes the application-level JSON contract.
 - `templateVersion` describes the user's revision of a specific template.
+- Template and structure nodes use stable UUIDv7 identities.
 - Template IDs remain unchanged when a template is renamed or edited.
 - Duplicating a template creates a new template ID.
 - Importing the same exported template requires an explicit choice between replacing/updating it and importing it as a new template.
 
-Automatic template-version increments are proposed whenever a saved structural or content change affects generated output. Pure display-order or Explorer-enabled changes should not increment it.
+`templateVersion` increments when a saved change affects generated output or project provenance. Description, display order, and Explorer enablement changes do not increment it. Exact rules are in [`JSON-CONTRACT.md`](JSON-CONTRACT.md).
 
 ## 11. Variables
 
-### 11.1 Proposed built-in variables
+### 11.1 Version 1 built-in variables
 
 | Variable | Meaning | Example |
 | --- | --- | --- |
@@ -410,7 +420,7 @@ Automatic template-version increments are proposed whenever a saved structural o
 | `{{project_id}}` | UUIDv7 assigned to the project. | `01993a74-7a89-7c13-9c54-76b8bf2bb785` |
 | `{{user_name}}` | Current Windows username. | `Zdravko` |
 
-Variable names are case-insensitive only if that is explicitly chosen before schema approval. The recommended behavior is lowercase canonical names with case-insensitive recognition for usability.
+The contract draft makes variable names case-sensitive and requires the lowercase canonical spellings above. Unknown or malformed variable expressions are blocking errors.
 
 ### 11.2 Variable evaluation
 
@@ -441,7 +451,9 @@ The exact canonical filename is:
 
 Windows normally treats filenames case-insensitively, but application code and future scanners should write and display the canonical spelling exactly.
 
-### 12.3 Proposed schema version 1
+### 12.3 Schema version 1
+
+The exact structural contract is [`schemas/project-id-v1.schema.json`](schemas/project-id-v1.schema.json), its semantic rules are in [`JSON-CONTRACT.md`](JSON-CONTRACT.md), and [`examples/projectID.json`](examples/projectID.json) is a valid test vector.
 
 ```json
 {
@@ -678,6 +690,8 @@ Core must not depend on WPF, WinForms, Registry APIs, or installer technology. T
 
 Templates use non-roaming Local AppData because attached binary assets may be large and are specific to the current workstation. Application binaries and user-owned data remain in separate directory trees so updates cannot replace templates or settings.
 
+Explorer enablement and template order are stored in `%LOCALAPPDATA%\ProjectScaffolder\Settings\template-library.json` using [`schemas/template-library-v1.schema.json`](schemas/template-library-v1.schema.json). This local state is not included in exported templates.
+
 ### 16.2 Persistence rules
 
 - Save JSON atomically through a sibling temporary file and replace/rename.
@@ -913,7 +927,6 @@ Questions marked **Baseline** should be answered before implementation begins. O
 
 | ID | Question | Recommendation | When |
 | --- | --- | --- | --- |
-| Q-007 | Should overwrite be available in the first release? | Yes, but only through an explicit per-file/template setting. | Milestone 1 |
 | Q-010 | What package extension should exported templates use? | Choose a product-specific ZIP-based extension after naming is final. | Milestone 3 |
 | Q-011 | Should Explorer submenu order be manually configurable? | Yes. | Milestone 3 |
 | Q-012 | Should generation logs be written on every successful run? | Keep a small structured log with bounded retention. | Milestone 2 |
@@ -969,6 +982,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Support folder, empty-file, templated-text-file, and attached-asset nodes initially. | These node types cover generic project structures and binary starter assets without specialized generators or executable hooks. |
 | 2026-08-24 | Install per user under `%LOCALAPPDATA%\Programs` and keep templates/settings in non-roaming `%LOCALAPPDATA%`. | This matches the per-user Explorer registration model, avoids UAC, simplifies updates, and prevents large attached assets from roaming with a Windows profile. |
 | 2026-08-24 | Approve design baseline version 1.0 for implementation. | The product workflow, platform, identity contract, safety defaults, storage model, and initial scope have been reviewed and accepted. |
+| 2026-08-24 | Approve JSON contract version 1 and design revision 1.1. | Strict schemas, stable identities, separated local Explorer state, deterministic variables, and explicit file behavior provide a testable implementation contract. |
 
 ## 27. Authoritative references
 
@@ -978,6 +992,7 @@ The metadata schema should remain small. Database-specific fields such as client
 - WPF desktop documentation: <https://learn.microsoft.com/en-us/dotnet/desktop/wpf/>
 - Microsoft classic cascading-menu guidance: <https://learn.microsoft.com/en-us/windows/win32/shell/how-to-create-cascading-menus-with-the-extendedsubcommandskey-registry-entry>
 - Microsoft packaged Explorer-command guidance: <https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/integrate-packaged-app-with-file-explorer>
+- JSON Schema Draft 2020-12: <https://json-schema.org/draft/2020-12>
 
 ## 28. Approval
 

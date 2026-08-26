@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "templateId": "01993a6c-f686-7e81-b530-35940e1b4072",
+  "name": "3ds Max Project",
+  "description": "Standard 3ds Max production structure",
+  "templateVersion": 1,
+  "createdAtUtc": "2026-08-24T12:30:00.000Z",
+  "modifiedAtUtc": "2026-08-24T12:30:00.000Z",
+  "defaultFileCollision": "skip",
+  "nodes": [
+    {
+      "nodeId": "01993a6d-0001-7a10-8a01-000000000001",
+      "type": "folder",
+      "name": "SCENES",
+      "children": []
+    },
+    {
+      "nodeId": "01993a6d-0002-7a10-8a01-000000000002",
+      "type": "folder",
+      "name": "RENDERS",
+      "children": []
+    },
+    {
+      "nodeId": "01993a6d-0003-7a10-8a01-000000000003",
+      "type": "folder",
+      "name": "ASSETS",
+      "children": []
+    },
+    {
+      "nodeId": "01993a6d-0004-7a10-8a01-000000000004",
+      "type": "textFile",
+      "name": "{{project_name}}.mxp",
+      "encoding": "utf-8",
+      "lineEndings": "crlf",
+      "content": "[Directories]\nProjectFolder={{project_path}}\nScenes=.\\SCENES\nRenderOutput=.\\RENDERS\n"
+    }
+  ]
+}

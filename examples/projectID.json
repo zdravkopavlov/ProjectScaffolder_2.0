@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "projectId": "01993a74-7a89-7c13-9c54-76b8bf2bb785",
+  "createdAtUtc": "2026-08-24T12:41:37.284Z",
+  "projectName": "Hotel Lobby",
+  "template": {
+    "id": "01993a6c-f686-7e81-b530-35940e1b4072",
+    "name": "3ds Max Project",
+    "version": 1
+  },
+  "generator": {
+    "name": "Project Scaffolder",
+    "version": "2.0.0"
+  }
+}
