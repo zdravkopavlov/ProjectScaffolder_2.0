@@ -23,9 +23,6 @@ internal sealed class MainViewModel : ObservableObject
         AddTextFileCommand = new RelayCommand(AddTextFile, () => SelectedTemplate is not null);
         DeleteNodeCommand = new RelayCommand(DeleteNode, () => SelectedTemplate is not null && SelectedNode is not null);
         RenameNodeCommand = new RelayCommand(RenameNode, () => SelectedNode is not null);
-        SortNodesCommand = new RelayCommand(SortNodes, () => SelectedTemplate is not null);
-        MoveNodeUpCommand = new RelayCommand(() => MoveNode(-1), CanMoveNodeUp);
-        MoveNodeDownCommand = new RelayCommand(() => MoveNode(1), CanMoveNodeDown);
     }
 
     public ObservableCollection<TemplateListItemViewModel> Templates { get; } = [];
@@ -65,12 +62,6 @@ internal sealed class MainViewModel : ObservableObject
     public RelayCommand DeleteNodeCommand { get; }
 
     public RelayCommand RenameNodeCommand { get; }
-
-    public RelayCommand SortNodesCommand { get; }
-
-    public RelayCommand MoveNodeUpCommand { get; }
-
-    public RelayCommand MoveNodeDownCommand { get; }
 
     public TemplateListItemViewModel? SelectedListItem
     {
@@ -155,6 +146,7 @@ internal sealed class MainViewModel : ObservableObject
         oldSiblings.RemoveAt(oldIndex);
         node.SetParent(newParent);
         newSiblings.Insert(targetIndex, node);
+        SortCollection(template.Nodes);
         template.NotifyStructureChanged();
         SelectedNode = node;
         return true;
@@ -320,6 +312,7 @@ internal sealed class MainViewModel : ObservableObject
             template.AddRoot(folder);
         }
 
+        SortCollection(template.Nodes);
         template.NotifyStructureChanged();
     }
 
@@ -337,6 +330,7 @@ internal sealed class MainViewModel : ObservableObject
             template.AddRoot(file);
         }
 
+        SortCollection(template.Nodes);
         template.NotifyStructureChanged();
     }
 
@@ -359,12 +353,15 @@ internal sealed class MainViewModel : ObservableObject
 
     private void RenameNode() => SelectedNode?.BeginRename();
 
-    private void SortNodes()
+    public void NormalizeStructureOrder()
     {
-        TemplateEditorViewModel template = SelectedTemplate!;
+        if (SelectedTemplate is not TemplateEditorViewModel template)
+        {
+            return;
+        }
+
         SortCollection(template.Nodes);
         template.NotifyStructureChanged();
-        StatusMessage = "Structure sorted with folders first, then files, alphabetically.";
         NotifyCommandStates();
     }
 
@@ -388,43 +385,6 @@ internal sealed class MainViewModel : ObservableObject
                 nodes.Move(currentIndex, targetIndex);
             }
         }
-    }
-
-    private void MoveNode(int offset)
-    {
-        EditorNodeViewModel node = SelectedNode!;
-        ObservableCollection<EditorNodeViewModel> siblings = node.Parent?.Children ?? SelectedTemplate!.Nodes;
-        int oldIndex = siblings.IndexOf(node);
-        int newIndex = oldIndex + offset;
-        siblings.Move(oldIndex, newIndex);
-
-        SelectedTemplate!.NotifyStructureChanged();
-        NotifyCommandStates();
-    }
-
-    private bool CanMoveNodeUp() => GetSelectedNodeIndex() > 0;
-
-    private bool CanMoveNodeDown()
-    {
-        if (SelectedNode is null || SelectedTemplate is null)
-        {
-            return false;
-        }
-
-        ObservableCollection<EditorNodeViewModel> siblings = SelectedNode.Parent?.Children ?? SelectedTemplate.Nodes;
-        int index = siblings.IndexOf(SelectedNode);
-        return index >= 0 && index < siblings.Count - 1;
-    }
-
-    private int GetSelectedNodeIndex()
-    {
-        if (SelectedNode is null || SelectedTemplate is null)
-        {
-            return -1;
-        }
-
-        ObservableCollection<EditorNodeViewModel> siblings = SelectedNode.Parent?.Children ?? SelectedTemplate.Nodes;
-        return siblings.IndexOf(SelectedNode);
     }
 
     private string GetUniqueName(string baseName)
@@ -489,9 +449,6 @@ internal sealed class MainViewModel : ObservableObject
         AddTextFileCommand.NotifyCanExecuteChanged();
         DeleteNodeCommand.NotifyCanExecuteChanged();
         RenameNodeCommand.NotifyCanExecuteChanged();
-        SortNodesCommand.NotifyCanExecuteChanged();
-        MoveNodeUpCommand.NotifyCanExecuteChanged();
-        MoveNodeDownCommand.NotifyCanExecuteChanged();
     }
 
     private static IEnumerable<EditorNodeViewModel> Flatten(IEnumerable<EditorNodeViewModel> nodes)

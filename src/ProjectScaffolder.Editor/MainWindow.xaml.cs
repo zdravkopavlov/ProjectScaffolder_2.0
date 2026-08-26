@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,16 +13,29 @@ namespace ProjectScaffolder.Editor;
 public partial class MainWindow : Window
 {
     private bool closeApproved;
+    private readonly DispatcherTimer renameTimer;
     private Point dragStartPoint;
     private EditorNodeViewModel? dragCandidate;
+    private EditorNodeViewModel? renameClickCandidate;
+    private EditorNodeViewModel? pendingRenameNode;
+    private EditorNodeViewModel? dropTargetNode;
+    private bool pointerMoved;
 
     internal MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
+        renameTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime()),
+        };
+        renameTimer.Tick += RenameTimer_Tick;
     }
 
     private MainViewModel ViewModel => (MainViewModel)DataContext;
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDoubleClickTime();
 
     private void Window_SourceInitialized(object? sender, EventArgs e) => ThemeManager.ApplyWindowChrome(this);
 
@@ -37,14 +51,34 @@ public partial class MainWindow : Window
 
     private void StructureTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        CancelPendingMouseRename();
         dragStartPoint = e.GetPosition(StructureTree);
+        pointerMoved = false;
         TreeViewItem? clickedItem = FindVisualAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
         dragCandidate = clickedItem?.DataContext as EditorNodeViewModel;
+        renameClickCandidate = e.ClickCount == 1 &&
+            ReferenceEquals(dragCandidate, ViewModel.SelectedNode) &&
+            IsInsideNodeLabel(e.OriginalSource as DependencyObject) &&
+            FindVisualAncestor<TextBox>(e.OriginalSource as DependencyObject) is null
+                ? dragCandidate
+                : null;
         if (clickedItem is null)
         {
             ClearTreeSelection(StructureTree);
             ViewModel.SelectedNode = null;
         }
+    }
+
+    private void StructureTree_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!pointerMoved && e.ClickCount == 1 && renameClickCandidate is not null &&
+            ReferenceEquals(renameClickCandidate, ViewModel.SelectedNode))
+        {
+            pendingRenameNode = renameClickCandidate;
+            renameTimer.Start();
+        }
+
+        renameClickCandidate = null;
     }
 
     private void StructureTree_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -64,30 +98,47 @@ public partial class MainWindow : Window
 
         EditorNodeViewModel node = dragCandidate;
         dragCandidate = null;
-        _ = DragDrop.DoDragDrop(StructureTree, node, DragDropEffects.Move);
+        pointerMoved = true;
+        CancelPendingMouseRename();
+        try
+        {
+            _ = DragDrop.DoDragDrop(StructureTree, node, DragDropEffects.Move);
+        }
+        finally
+        {
+            ClearDropTarget();
+        }
     }
 
     private void StructureTree_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = TryGetDropDestination(e, out EditorNodeViewModel? dragged, out EditorNodeViewModel? parent, out _)
-            && ViewModel.CanMoveNode(dragged!, parent)
-                ? DragDropEffects.Move
-                : DragDropEffects.None;
+        bool valid = TryGetDropDestination(e, out EditorNodeViewModel? dragged, out EditorNodeViewModel? parent, out _) &&
+            ViewModel.CanMoveNode(dragged!, parent);
+        e.Effects = valid ? DragDropEffects.Move : DragDropEffects.None;
+        if (valid)
+        {
+            SetDropTarget(parent);
+        }
+        else
+        {
+            ClearDropTarget();
+        }
+
         e.Handled = true;
     }
 
     private void StructureTree_Drop(object sender, DragEventArgs e)
     {
-        if (TryGetDropDestination(e, out EditorNodeViewModel? dragged, out EditorNodeViewModel? parent, out int index) &&
-            ViewModel.MoveNode(dragged!, parent, index))
+        if (TryGetDropDestination(e, out EditorNodeViewModel? dragged, out EditorNodeViewModel? parent, out int index))
         {
-            TreeViewItem? targetContainer = FindVisualAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
-            if (parent is not null && ReferenceEquals(targetContainer?.DataContext, parent))
+            TreeViewItem? parentContainer = parent is null ? null : FindTreeViewItem(StructureTree, parent);
+            if (ViewModel.MoveNode(dragged!, parent, index) && parentContainer is not null)
             {
-                targetContainer.IsExpanded = true;
+                parentContainer.IsExpanded = true;
             }
         }
 
+        ClearDropTarget();
         e.Handled = true;
     }
 
@@ -97,6 +148,15 @@ public partial class MainWindow : Window
         e.Effects = dragged is not null && ViewModel.CanMoveNode(dragged, null)
             ? DragDropEffects.Move
             : DragDropEffects.None;
+        if (e.Effects == DragDropEffects.Move)
+        {
+            SetDropTarget(null);
+        }
+        else
+        {
+            ClearDropTarget();
+        }
+
         e.Handled = true;
     }
 
@@ -108,6 +168,7 @@ public partial class MainWindow : Window
             _ = ViewModel.MoveNode(dragged, null, ViewModel.SelectedTemplate.Nodes.Count);
         }
 
+        ClearDropTarget();
         e.Handled = true;
     }
 
@@ -131,11 +192,7 @@ public partial class MainWindow : Window
             return true;
         }
 
-        double relativeY = e.GetPosition(targetContainer).Y;
-        bool centralFolderDrop = target.Kind == EditorNodeKind.Folder &&
-            relativeY >= targetContainer.ActualHeight * 0.25 &&
-            relativeY <= targetContainer.ActualHeight * 0.75;
-        if (centralFolderDrop)
+        if (target.Kind == EditorNodeKind.Folder)
         {
             parent = target;
             insertionIndex = target.Children.Count;
@@ -144,11 +201,7 @@ public partial class MainWindow : Window
 
         parent = target.Parent;
         var siblings = parent?.Children ?? ViewModel.SelectedTemplate.Nodes;
-        insertionIndex = siblings.IndexOf(target);
-        if (relativeY > targetContainer.ActualHeight / 2)
-        {
-            insertionIndex++;
-        }
+        insertionIndex = siblings.Count;
 
         return true;
     }
@@ -157,6 +210,107 @@ public partial class MainWindow : Window
         e.Data.GetDataPresent(typeof(EditorNodeViewModel))
             ? e.Data.GetData(typeof(EditorNodeViewModel)) as EditorNodeViewModel
             : null;
+
+    private void SetDropTarget(EditorNodeViewModel? folder)
+    {
+        if (ReferenceEquals(dropTargetNode, folder) && (folder is not null || ProjectRootBorder.ReadLocalValue(Border.BackgroundProperty) != DependencyProperty.UnsetValue))
+        {
+            return;
+        }
+
+        ClearDropTarget();
+        dropTargetNode = folder;
+        if (folder is null)
+        {
+            ProjectRootBorder.SetResourceReference(Border.BackgroundProperty, "AccentSelectionBrush");
+            ProjectRootBorder.SetResourceReference(Border.BorderBrushProperty, "AccentBrush");
+            ProjectRootBorder.BorderThickness = new Thickness(1);
+        }
+        else
+        {
+            folder.IsDropTarget = true;
+        }
+    }
+
+    private void ClearDropTarget()
+    {
+        if (dropTargetNode is not null)
+        {
+            dropTargetNode.IsDropTarget = false;
+            dropTargetNode = null;
+        }
+
+        ProjectRootBorder.ClearValue(Border.BackgroundProperty);
+        ProjectRootBorder.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
+        ProjectRootBorder.BorderThickness = new Thickness(0, 0, 0, 1);
+    }
+
+    private void DropSurface_DragLeave(object sender, DragEventArgs e)
+    {
+        if (sender is not FrameworkElement element || !element.IsMouseOver)
+        {
+            ClearDropTarget();
+        }
+    }
+
+    private static TreeViewItem? FindTreeViewItem(ItemsControl parent, EditorNodeViewModel node)
+    {
+        foreach (object item in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is not TreeViewItem container)
+            {
+                continue;
+            }
+
+            if (ReferenceEquals(container.DataContext, node))
+            {
+                return container;
+            }
+
+            TreeViewItem? descendant = FindTreeViewItem(container, node);
+            if (descendant is not null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsInsideNodeLabel(DependencyObject? source)
+    {
+        for (DependencyObject? current = source; current is not null; current = GetVisualOrContentParent(current))
+        {
+            if (current is FrameworkElement { Tag: "NodeLabel" })
+            {
+                return true;
+            }
+
+            if (current is TreeViewItem)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private void RenameTimer_Tick(object? sender, EventArgs e)
+    {
+        renameTimer.Stop();
+        EditorNodeViewModel? node = pendingRenameNode;
+        pendingRenameNode = null;
+        if (node is not null && ReferenceEquals(node, ViewModel.SelectedNode))
+        {
+            node.BeginRename();
+        }
+    }
+
+    private void CancelPendingMouseRename()
+    {
+        renameTimer.Stop();
+        pendingRenameNode = null;
+    }
 
     private static T? FindVisualAncestor<T>(DependencyObject? source)
         where T : DependencyObject
@@ -213,7 +367,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void CommitInlineRename(TextBox? textBox)
+    private void CommitInlineRename(TextBox? textBox)
     {
         if (textBox?.DataContext is not EditorNodeViewModel { IsEditing: true } node)
         {
@@ -222,6 +376,7 @@ public partial class MainWindow : Window
 
         node.Name = textBox.Text;
         node.EndRename();
+        ViewModel.NormalizeStructureOrder();
     }
 
     private static void ClearTreeSelection(ItemsControl itemsControl)
@@ -308,6 +463,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.F2 && ViewModel.RenameNodeCommand.CanExecute(null))
         {
+            CancelPendingMouseRename();
             ViewModel.RenameNodeCommand.Execute(null);
             e.Handled = true;
         }

@@ -18,6 +18,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
     private LineEndingKind lineEndings;
     private string content;
     private bool isEditing;
+    private bool isDropTarget;
 
     private EditorNodeViewModel(
         Guid nodeId,
@@ -140,6 +141,12 @@ internal sealed class EditorNodeViewModel : ObservableObject
     {
         get => isEditing;
         set => SetProperty(ref isEditing, value);
+    }
+
+    public bool IsDropTarget
+    {
+        get => isDropTarget;
+        set => SetProperty(ref isDropTarget, value);
     }
 
     public void BeginRename() => IsEditing = true;

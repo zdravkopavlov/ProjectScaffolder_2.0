@@ -931,11 +931,11 @@ Current verified editor slice:
 - [x] Load templates from Local AppData, seed the bundled example once, and keep damaged templates visible.
 - [x] Create and duplicate templates; add, rename, remove, and reorder basic folder/text nodes.
 - [x] Treat the visible project-root row as a selectable insertion target for first-level folders and files.
-- [x] Support inline rename through a toolbar action and `F2`, while retaining property-pane editing.
-- [x] Support guarded drag-and-drop for sibling ordering, folder nesting, and returning nodes to the project root.
+- [x] Support inline rename through `F2`, a toolbar action, and Explorer-style delayed second-click on an already-selected name.
+- [x] Support guarded drag-and-drop with explicit folder/root target highlighting, reliable folder nesting, and returning nodes to the project root.
 - [x] Clear node selection when empty tree space is clicked so subsequent additions target the project root.
 - [x] Keep the insertion target selected after creation, preventing repeated additions from nesting recursively.
-- [x] Provide recursive folders-first alphabetical sorting while retaining manual ordering tools.
+- [x] Automatically maintain recursive folders-first alphabetical ordering after creation, rename, and drag/drop; manual ordering controls are unnecessary.
 - [x] Edit text content, encoding, line endings, and collision behavior in the properties pane.
 - [x] Continuously validate both contract rules and resolved output-path conflicts.
 - [x] Save valid templates atomically with dirty-state tracking and `Ctrl+S`.

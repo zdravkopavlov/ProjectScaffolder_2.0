@@ -43,7 +43,7 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public void MoveNodeSupportsReorderingNestingAndReturningToRoot()
+    public void MoveNodeSupportsNestingAndReturningToRoot()
     {
         MainViewModel viewModel = CreateViewModel();
         viewModel.NewTemplateCommand.Execute(null);
@@ -52,12 +52,10 @@ public sealed class MainViewModelTests
         viewModel.AddFolderCommand.Execute(null);
         EditorNodeViewModel second = viewModel.SelectedTemplate.Nodes[1];
 
-        Assert.True(viewModel.MoveNode(second, null, 0));
-        Assert.Same(second, viewModel.SelectedTemplate!.Nodes[0]);
         Assert.True(viewModel.MoveNode(first, second, 0));
         Assert.Same(first, Assert.Single(second.Children));
         Assert.True(viewModel.MoveNode(first, null, viewModel.SelectedTemplate.Nodes.Count));
-        Assert.Same(first, viewModel.SelectedTemplate.Nodes[^1]);
+        Assert.Contains(first, viewModel.SelectedTemplate.Nodes);
     }
 
     [Fact]
@@ -122,10 +120,40 @@ public sealed class MainViewModelTests
         template.AddRoot(EditorNodeViewModel.CreateFolder("Alpha"));
         template.AddRoot(EditorNodeViewModel.CreateTextFile("Beta.txt"));
 
-        viewModel.SortNodesCommand.Execute(null);
+        viewModel.NormalizeStructureOrder();
 
         Assert.Equal(["Alpha", "zebra", "alpha.txt", "Beta.txt"], template.Nodes.Select(node => node.Name));
         Assert.Equal(["alpha", "Zulu", "alpha.txt"], zFolder.Children.Select(node => node.Name));
+    }
+
+    [Fact]
+    public void CreationAutomaticallyKeepsFoldersBeforeFilesAlphabetically()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        viewModel.AddTextFileCommand.Execute(null);
+        viewModel.AddFolderCommand.Execute(null);
+        viewModel.AddFolderCommand.Execute(null);
+
+        Assert.Equal(["New Folder", "New Folder 2", "New File"], viewModel.SelectedTemplate!.Nodes.Select(node => node.Name));
+    }
+
+    [Fact]
+    public void FolderTreeCanMoveIntoFolderThatAlreadyHasChildren()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        TemplateEditorViewModel template = viewModel.SelectedTemplate!;
+        EditorNodeViewModel destination = EditorNodeViewModel.CreateFolder("Destination");
+        destination.AddChild(EditorNodeViewModel.CreateFolder("Existing"));
+        EditorNodeViewModel dragged = EditorNodeViewModel.CreateFolder("Dragged tree");
+        dragged.AddChild(EditorNodeViewModel.CreateFolder("Nested"));
+        template.AddRoot(destination);
+        template.AddRoot(dragged);
+
+        Assert.True(viewModel.MoveNode(dragged, destination, destination.Children.Count));
+        Assert.Equal(["Dragged tree", "Existing"], destination.Children.Select(node => node.Name));
+        Assert.Equal("Nested", Assert.Single(dragged.Children).Name);
     }
 
     private static MainViewModel CreateViewModel() =>
