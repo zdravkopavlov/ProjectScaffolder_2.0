@@ -19,10 +19,12 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ThemeManager.Apply(ThemePreference.System);
+        bool suppressStartupErrorUi = false;
 
         try
         {
             EditorStartupOptions options = EditorStartupOptions.Parse(e.Args);
+            suppressStartupErrorUi = options.RepairExplorerRegistration;
             TemplateLibraryStore store = new(options.Paths);
             IExplorerMenuRegistration explorerMenu = options.EnableExplorerRegistration
                 ? new ExplorerMenuRegistration(
@@ -31,6 +33,12 @@ public partial class App : Application
                 : new NullExplorerMenuRegistration();
             MainViewModel viewModel = new(store, explorerMenu);
             await viewModel.InitializeAsync().ConfigureAwait(true);
+            if (options.RepairExplorerRegistration)
+            {
+                Shutdown(0);
+                return;
+            }
+
             MainWindow window = new(viewModel);
             MainWindow = window;
             window.Show();
@@ -81,11 +89,15 @@ public partial class App : Application
         }
         catch (Exception exception)
         {
-            MessageBox.Show(
-                $"Project Scaffolder could not start.\n\n{exception.Message}",
-                "Project Scaffolder",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            if (!suppressStartupErrorUi)
+            {
+                MessageBox.Show(
+                    $"Project Scaffolder could not start.\n\n{exception.Message}",
+                    "Project Scaffolder",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
             Shutdown(1);
         }
     }

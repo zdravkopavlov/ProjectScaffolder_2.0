@@ -752,7 +752,7 @@ Explorer enablement and template order are stored in `%LOCALAPPDATA%\ProjectScaf
 - Record an installed product version.
 - Avoid requiring PowerShell scripts during normal end-user installation.
 
-Installer technology is open and should be chosen after a packaging spike. Candidates may include WiX-based MSI/bundle packaging or another reputable Windows installer system.
+Inno Setup 6 is the confirmed initial installer technology. A repository build script produces a self-contained Windows x64 per-user setup executable and passes version/source/output values to the checked-in `.iss` definition.
 
 ### 17.2 Upgrade requirements
 
@@ -956,10 +956,10 @@ Deferred beyond the initial release: clipboard operations, delete undo, manual l
 
 ### Milestone 5 — Installer
 
-- [ ] Complete installer technology spike.
-- [ ] Build per-user installer executable.
-- [ ] Add Start menu and uninstall entries.
-- [ ] Seed default templates safely.
+- [x] Complete installer technology spike and select Inno Setup 6.
+- [x] Build per-user self-contained installer executable.
+- [x] Add Start menu and uninstall entries.
+- [x] Seed default templates safely and refresh Explorer registration during setup.
 - [ ] Test install, upgrade, repair, and uninstall.
 
 ### Milestone 6 — Hardening and release
@@ -987,7 +987,7 @@ Questions marked **Baseline** should be answered before implementation begins. O
 | --- | --- | --- | --- |
 | Q-010 | What package extension should exported templates use? | Deferred with template import/export. | Post-1.0 |
 | Q-011 | Should Explorer submenu order be manually configurable? | Deferred; initial release uses stable library order. | Post-1.0 |
-| Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Decide through a small packaging spike. | Milestone 5 |
+| Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Inno Setup 6. | Resolved |
 | Q-015 | Should imported folders include hidden/system files by default? | Deferred with folder import. | Post-1.0 |
 
 ## 24. Risks and mitigations
@@ -1051,6 +1051,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Keep preview non-mutating and make disposable generation a separate explicit action using the production generator. | This tests the actual filesystem behavior, including unsaved edits and staged assets, while keeping ordinary preview safe; generated workspaces can be opened and are deleted only on explicit request. |
 | 2026-08-24 | Refocus the initial release on defining structures, including files, registering templates, and generating silently from Explorer; defer editor conveniences and disposable generation. | Project Scaffolder is a focused scaffolding utility, not a miniature IDE. This decision supersedes the disposable-generation decision above and moves active work to Explorer integration. |
 | 2026-08-24 | Implement the classic menu as two per-user static cascades maintained by the editor. | Separate background (`%V`) and selected-folder (`%1`) command sets preserve the direct in-place workflow without elevation, COM code, or generation inside Explorer. |
+| 2026-08-25 | Use Inno Setup 6 for the initial per-user installer. | It creates a conventional setup executable, supports lowest-privilege Local AppData installation, upgrades and uninstall, integrates with the checked-in build script, and does not force MSIX or modern-menu scope. |
 
 ## 27. Authoritative references
 
