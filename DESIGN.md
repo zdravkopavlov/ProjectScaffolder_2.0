@@ -232,7 +232,7 @@ The initial release uses static cascading-menu registration under the current us
 
 The editor owns registration updates. The runner never modifies registration while generating a project.
 
-Each top-level verb stores `ExtendedSubCommandsKey` as a `REG_SZ` value pointing to an application-owned command set under `Directory\ContextMenus`; it is not a nested key beneath the verb. Background and selected-folder verbs use separate command sets because their target placeholders differ.
+Each top-level verb is a self-contained static cascade: it stores an empty `SubCommands` value and owns its child verbs beneath `shell`. Background and selected-folder verbs remain separate because their target placeholders differ. This avoids shared command-store indirection and makes registration inspection and repair straightforward.
 
 Command construction must quote executable paths, target paths, and template identifiers correctly. The runner must not treat user-controlled path text as a shell command.
 
@@ -985,10 +985,10 @@ Questions marked **Baseline** should be answered before implementation begins. O
 
 | ID | Question | Recommendation | When |
 | --- | --- | --- | --- |
-| Q-010 | What package extension should exported templates use? | Choose a product-specific ZIP-based extension after naming is final. | Milestone 3 |
+| Q-010 | What package extension should exported templates use? | Deferred with template import/export. | Post-1.0 |
 | Q-011 | Should Explorer submenu order be manually configurable? | Deferred; initial release uses stable library order. | Post-1.0 |
 | Q-013 | Which installer technology best satisfies per-user EXE install, upgrade, and repair? | Decide through a small packaging spike. | Milestone 5 |
-| Q-015 | Should imported folders include hidden/system files by default? | Exclude by default and offer an explicit option. | Milestone 3 |
+| Q-015 | Should imported folders include hidden/system files by default? | Deferred with folder import. | Post-1.0 |
 
 ## 24. Risks and mitigations
 
