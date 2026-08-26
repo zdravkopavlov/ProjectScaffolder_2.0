@@ -232,6 +232,8 @@ The initial release uses static cascading-menu registration under the current us
 
 The editor owns registration updates. The runner never modifies registration while generating a project.
 
+Each top-level verb stores `ExtendedSubCommandsKey` as a `REG_SZ` value pointing to an application-owned command set under `Directory\ContextMenus`; it is not a nested key beneath the verb. Background and selected-folder verbs use separate command sets because their target placeholders differ.
+
 Command construction must quote executable paths, target paths, and template identifiers correctly. The runner must not treat user-controlled path text as a shell command.
 
 ### 8.2 Registration model

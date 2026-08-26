@@ -21,6 +21,9 @@ public sealed class ExplorerMenuPlanBuilderTests
         ExplorerMenuLocation selected = Assert.Single(plan.Locations, location => !location.RegistryPath.Contains("Background", StringComparison.Ordinal));
         Assert.Contains("--target \"%V\"", background.Commands[0].CommandLine, StringComparison.Ordinal);
         Assert.Contains("--target \"%1\"", selected.Commands[0].CommandLine, StringComparison.Ordinal);
+        Assert.Equal(ExplorerMenuPlanBuilder.BackgroundCommandsKey, background.ExtendedSubCommandsKey);
+        Assert.Equal(ExplorerMenuPlanBuilder.SelectedFolderCommandsKey, selected.ExtendedSubCommandsKey);
+        Assert.DoesNotContain("ExtendedSubCommandsKey", background.CommandsRegistryPath, StringComparison.Ordinal);
         Assert.Contains(firstId.ToString("D"), background.Commands[0].CommandLine, StringComparison.Ordinal);
         Assert.Equal(["3ds Max Project", "Photogrammetry", "Editor"], background.Commands.Select(command => command.Label));
         Assert.True(background.Commands[^1].SeparatorBefore);

@@ -7,7 +7,11 @@ internal sealed record ExplorerMenuTemplate(Guid TemplateId, string Name);
 
 internal sealed record ExplorerMenuCommand(string KeyName, string Label, string CommandLine, bool SeparatorBefore);
 
-internal sealed record ExplorerMenuLocation(string RegistryPath, IReadOnlyList<ExplorerMenuCommand> Commands);
+internal sealed record ExplorerMenuLocation(
+    string RegistryPath,
+    string ExtendedSubCommandsKey,
+    string CommandsRegistryPath,
+    IReadOnlyList<ExplorerMenuCommand> Commands);
 
 internal sealed record ExplorerMenuPlan(string MenuLabel, string IconPath, IReadOnlyList<ExplorerMenuLocation> Locations);
 
@@ -38,6 +42,8 @@ internal static class ExplorerMenuPlanBuilder
 {
     public const string BackgroundMenuPath = @"Software\Classes\Directory\Background\shell\ProjectScaffolder";
     public const string SelectedFolderMenuPath = @"Software\Classes\Directory\shell\ProjectScaffolder";
+    public const string BackgroundCommandsKey = @"Directory\ContextMenus\ProjectScaffolder.Background";
+    public const string SelectedFolderCommandsKey = @"Directory\ContextMenus\ProjectScaffolder.SelectedFolder";
 
     public static ExplorerMenuPlan Build(
         string editorPath,
@@ -50,8 +56,16 @@ internal static class ExplorerMenuPlanBuilder
             "New Project",
             editor,
             [
-                new ExplorerMenuLocation(BackgroundMenuPath, BuildCommands(editor, runner, templates, "%V")),
-                new ExplorerMenuLocation(SelectedFolderMenuPath, BuildCommands(editor, runner, templates, "%1")),
+                new ExplorerMenuLocation(
+                    BackgroundMenuPath,
+                    BackgroundCommandsKey,
+                    $@"Software\Classes\{BackgroundCommandsKey}",
+                    BuildCommands(editor, runner, templates, "%V")),
+                new ExplorerMenuLocation(
+                    SelectedFolderMenuPath,
+                    SelectedFolderCommandsKey,
+                    $@"Software\Classes\{SelectedFolderCommandsKey}",
+                    BuildCommands(editor, runner, templates, "%1")),
             ]);
     }
 
@@ -131,11 +145,13 @@ internal sealed class ExplorerMenuRegistration(string editorPath, string runnerP
         foreach (ExplorerMenuLocation location in plan.Locations)
         {
             Registry.CurrentUser.DeleteSubKeyTree(location.RegistryPath, false);
+            Registry.CurrentUser.DeleteSubKeyTree(location.CommandsRegistryPath, false);
             using RegistryKey menu = Registry.CurrentUser.CreateSubKey(location.RegistryPath, true)
                 ?? throw new UnauthorizedAccessException($"Could not create Explorer menu key '{location.RegistryPath}'.");
             menu.SetValue("MUIVerb", plan.MenuLabel, RegistryValueKind.String);
             menu.SetValue("Icon", plan.IconPath, RegistryValueKind.String);
-            using RegistryKey shell = menu.CreateSubKey(@"ExtendedSubCommandsKey\Shell", true)
+            menu.SetValue("ExtendedSubCommandsKey", location.ExtendedSubCommandsKey, RegistryValueKind.String);
+            using RegistryKey shell = Registry.CurrentUser.CreateSubKey($@"{location.CommandsRegistryPath}\shell", true)
                 ?? throw new UnauthorizedAccessException("Could not create the Explorer submenu.");
             foreach (ExplorerMenuCommand command in location.Commands)
             {
@@ -159,12 +175,13 @@ internal sealed class ExplorerMenuRegistration(string editorPath, string runnerP
     private static bool IsCurrent(RegistryKey menu, ExplorerMenuPlan plan, ExplorerMenuLocation location)
     {
         if (!string.Equals(menu.GetValue("MUIVerb") as string, plan.MenuLabel, StringComparison.Ordinal) ||
-            !string.Equals(menu.GetValue("Icon") as string, plan.IconPath, StringComparison.OrdinalIgnoreCase))
+            !string.Equals(menu.GetValue("Icon") as string, plan.IconPath, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(menu.GetValue("ExtendedSubCommandsKey") as string, location.ExtendedSubCommandsKey, StringComparison.Ordinal))
         {
             return false;
         }
 
-        using RegistryKey? shell = menu.OpenSubKey(@"ExtendedSubCommandsKey\Shell", false);
+        using RegistryKey? shell = Registry.CurrentUser.OpenSubKey($@"{location.CommandsRegistryPath}\shell", false);
         if (shell is null || !shell.GetSubKeyNames().SequenceEqual(location.Commands.Select(command => command.KeyName), StringComparer.Ordinal))
         {
             return false;
