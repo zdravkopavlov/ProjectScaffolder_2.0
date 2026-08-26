@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.3 |
+| Document version | 1.4 |
 | Last updated | 2026-08-24 |
 | Target platform | Windows 11 x64 |
 
@@ -883,14 +883,14 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 
 ### Milestone 1 — Foundation and contracts
 
-- [ ] Initialize the repository and solution.
-- [ ] Add formatting, build, and test conventions.
-- [ ] Implement template and metadata contracts.
-- [ ] Implement template persistence and schema validation.
-- [ ] Implement safe path normalization.
-- [ ] Implement variable resolution.
-- [ ] Implement generation planning and collision decisions.
-- [ ] Add core unit tests.
+- [x] Initialize the repository and solution.
+- [x] Add formatting, build, and test conventions.
+- [x] Implement template and metadata contracts.
+- [x] Implement template persistence and schema validation.
+- [x] Implement safe path normalization.
+- [x] Implement variable resolution.
+- [x] Implement generation planning and collision decisions.
+- [x] Add core unit tests.
 
 ### Milestone 2 — Generation runner
 
@@ -1010,6 +1010,7 @@ The metadata schema should remain small. Database-specific fields such as client
 | 2026-08-24 | Position Project Scaffolder as artist-first but keep its engine and editor generic. | The primary user receives excellent 3ds Max and photogrammetry workflows while the same folder, text, asset, and variable model remains useful across other DCC and non-art projects. |
 | 2026-08-24 | Confirm the three-pane editor concept and refine template-level controls. | Explorer registration belongs on each template row, saving belongs in the template pane, file creation should be concise, and testing should use one clearly named workflow. |
 | 2026-08-24 | Follow the Windows theme by default with Light and Dark overrides. | The editor should feel native on the user's system while retaining an explicit accessibility and preference choice. |
+| 2026-08-24 | Complete the Milestone 1 Core foundation on .NET 10. | Strict runtime contracts, semantic validation, deterministic variables, contained output planning, asset verification, collision preflight, encoding, and atomic persistence establish a testable safety boundary before filesystem generation or UI work. |
 
 ## 27. Authoritative references
 

@@ -177,7 +177,7 @@ Before encoding, the generator normalizes all line endings in `content` to the c
 - Asset bytes are copied verbatim; variables are not substituted within them.
 - `collision` is optional and inherits from `defaultFileCollision` when absent.
 
-### 4.9 Collision values
+### 4.8 Collision values
 
 | Value | Behavior |
 | --- | --- |
