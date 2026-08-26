@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     private EditorNodeViewModel? dropTargetNode;
     private bool pointerMoved;
     private TextBox? variableInsertionTarget;
+    private bool variableMenuOpen;
+    private bool variableWasInserted;
 
     internal MainWindow(MainViewModel viewModel)
     {
@@ -347,7 +349,15 @@ public partial class MainWindow : Window
         }
     }
 
-    private void InlineName_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e) => CommitInlineRename(sender as TextBox);
+    private void InlineName_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (variableMenuOpen && ReferenceEquals(variableInsertionTarget, sender))
+        {
+            return;
+        }
+
+        CommitInlineRename(sender as TextBox);
+    }
 
     private void InlineName_PreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -477,6 +487,8 @@ public partial class MainWindow : Window
     private void ShowVariableMenu(TextBox target, UIElement placementTarget)
     {
         variableInsertionTarget = target;
+        variableMenuOpen = true;
+        variableWasInserted = false;
         ContextMenu menu = new()
         {
             Placement = PlacementMode.Bottom,
@@ -494,8 +506,28 @@ public partial class MainWindow : Window
             menu.Items.Add(item);
         }
 
-        menu.Closed += (_, _) => variableInsertionTarget = null;
+        menu.Closed += (_, _) => VariableMenu_Closed(target);
         menu.IsOpen = true;
+    }
+
+    private void VariableMenu_Closed(TextBox target)
+    {
+        bool restoreEditingFocus = variableWasInserted;
+        variableMenuOpen = false;
+        variableWasInserted = false;
+        variableInsertionTarget = null;
+        if (restoreEditingFocus)
+        {
+            _ = target.Dispatcher.BeginInvoke(() =>
+            {
+                target.Focus();
+                target.CaretIndex = Math.Clamp(target.CaretIndex, 0, target.Text.Length);
+            }, DispatcherPriority.Input);
+        }
+        else if (target.DataContext is EditorNodeViewModel { IsEditing: true })
+        {
+            CommitInlineRename(target);
+        }
     }
 
     private void VariableMenuItem_Click(object sender, RoutedEventArgs e)
@@ -509,7 +541,7 @@ public partial class MainWindow : Window
         target.SelectedText = variable.Token;
         target.CaretIndex = insertionStart + variable.Token.Length;
         target.SelectionLength = 0;
-        target.Focus();
+        variableWasInserted = true;
     }
 
     private void TestTemplate_Click(object sender, RoutedEventArgs e)
