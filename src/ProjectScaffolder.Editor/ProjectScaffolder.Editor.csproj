@@ -18,8 +18,8 @@
 
   <ItemGroup>
     <Content Include="..\..\examples\demo-template.json" Link="SeedTemplates\demo-template.json" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="Assets\EcosystemLogo.jpg" />
     <Resource Include="Assets\ProjectScaffolder.ico" />
+    <None Update="Assets\Scaffolder.svg" />
     <None Update="Assets\file-box.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

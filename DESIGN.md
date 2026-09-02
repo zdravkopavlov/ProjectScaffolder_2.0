@@ -4,7 +4,7 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.8 |
+| Document version | 1.9 |
 | Last updated | 2026-09-02 |
 | Target platform | Windows 11 x64 |
 
@@ -163,6 +163,7 @@ Templates may also declare semantic folder roles. When present, generation recor
 | D-043 | Scaffolder owns a separate durable `.projectStructure.json` version 1 document that maps semantic roles to resolved project-relative paths. | Confirmed |
 | D-044 | Existing projects without a structure document remain valid; consuming tools may use an explicitly bounded legacy convention while adoption proceeds. | Confirmed |
 | D-045 | Existing projects may receive structure metadata through an explicit metadata-only update that requires a matching Template ID and existing resolved role directories. | Confirmed |
+| D-046 | The dedicated Scaffolder artwork is the single product identity across the WPF editor, runner executable, taskbar/window chrome, Explorer menu, shortcuts, and installer; the SVG is retained as the vector master and the multi-resolution ICO is used by Windows surfaces. | Confirmed |
 
 ## 7. User workflows
 
@@ -1101,6 +1102,7 @@ Project Scaffolder only reserves and documents this convention. It does not crea
 | 2026-09-02 | Keep resolved semantic paths in a durable Scaffolder-owned `.projectStructure.json` version 1 contract. | A separate strict document preserves project identity version 1, permits incremental consumer adoption, and avoids exposing another application's private database as an ecosystem API. |
 | 2026-09-02 | Treat malformed or mismatched existing structure metadata as a blocking repair condition. | Silently falling back after an explicit declaration is damaged could direct imported data to an unintended folder. |
 | 2026-09-02 | Add `capture.processed` and an explicit metadata-only update for existing matching projects. | RawEqualizer needs a durable processed-image destination, while reapplying the full template could overwrite unrelated project content. |
+| 2026-09-02 | Replace the generic ecosystem badge with the dedicated Scaffolder product artwork throughout the production `_2.0` application. | A single recognizable identity avoids confusion with the legacy editor and keeps the installed application, Explorer menu, and installer visually consistent. |
 
 ## 27. Authoritative references
 

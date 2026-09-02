@@ -12,6 +12,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>ProjectScaffolder.Runner</AssemblyName>
     <Version>2.0.0-alpha.6</Version>
+    <ApplicationIcon>..\ProjectScaffolder.Editor\Assets\ProjectScaffolder.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>
