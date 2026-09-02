@@ -270,6 +270,43 @@ public sealed class MainViewModelTests
             viewModel.VariableChoices.Select(variable => variable.Token));
     }
 
+    [Fact]
+    public void FolderRoleMenuContainsRawAndProcessedCaptureDestinations()
+    {
+        MainViewModel viewModel = CreateViewModel();
+
+        Assert.Equal(
+            [null, ProjectPathRoles.CaptureRaw, ProjectPathRoles.CaptureProcessed],
+            viewModel.FolderRoleChoices.Select(choice => choice.Value));
+    }
+
+    [Fact]
+    public void FolderRoleAssignedElsewhereRemainsVisibleButUnavailable()
+    {
+        MainViewModel viewModel = CreateViewModel();
+        viewModel.NewTemplateCommand.Execute(null);
+        EditorNodeViewModel dataset = EditorNodeViewModel.CreateFolder("DATASET");
+        EditorNodeViewModel raw = EditorNodeViewModel.CreateFolder("raw");
+        EditorNodeViewModel processed = EditorNodeViewModel.CreateFolder("processed");
+        dataset.AddChild(raw);
+        dataset.AddChild(processed);
+        viewModel.SelectedTemplate!.AddRoot(dataset);
+        raw.Role = ProjectPathRoles.CaptureRaw;
+
+        viewModel.SelectedNode = processed;
+
+        FolderRoleChoice rawChoice = Assert.Single(
+            viewModel.FolderRoleChoices,
+            choice => choice.Value == ProjectPathRoles.CaptureRaw);
+        Assert.False(rawChoice.IsEnabled);
+        Assert.Equal("Raw capture destination — assigned to DATASET/raw", rawChoice.Label);
+
+        viewModel.SelectedNode = raw;
+
+        Assert.True(rawChoice.IsEnabled);
+        Assert.Equal("Raw capture destination", rawChoice.Label);
+    }
+
     private static MainViewModel CreateViewModel() =>
         new(new TemplateLibraryStore(new EditorPaths(Path.GetTempPath())));
 }

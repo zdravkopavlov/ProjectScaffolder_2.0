@@ -70,10 +70,17 @@
         <Border Grid.Row="0" Background="{DynamicResource HeaderBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid Margin="12,8">
                 <StackPanel Orientation="Horizontal">
+                    <Border Width="32" Height="32" Margin="0,0,12,0" Padding="4" VerticalAlignment="Center"
+                            Background="#080808" CornerRadius="5" ToolTip="Project Scaffolder">
+                        <Image Source="Assets/EcosystemLogo.jpg" Stretch="Uniform" />
+                    </Border>
                     <Button Command="{Binding NewTemplateCommand}" Content="New" />
                     <Button IsEnabled="False" Content="Import folder" ToolTip="Folder import is the next editor slice." />
                     <Button Command="{Binding DuplicateTemplateCommand}" Content="Duplicate" />
                     <Button Click="RemoveTemplate_Click" Content="Remove" />
+                    <Button Click="UpdateProjectStructure_Click" IsEnabled="{Binding CanUpdateProjectStructure}"
+                            Content="Update metadata…"
+                            ToolTip="Create or update only .projectStructure.json in an existing project." />
                 </StackPanel>
                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                     <TextBlock Margin="0,0,8,0" Foreground="{DynamicResource SecondaryTextBrush}" Text="Theme" />
@@ -221,6 +228,21 @@
                                 <CheckBox Content="Hidden in Windows Explorer" IsChecked="{Binding IsHidden}" />
                                 <TextBlock Margin="0,6,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
                                            Text="Applied only when this template creates the folder. Existing folders are left unchanged."
+                                           TextWrapping="Wrap" />
+                                <TextBlock Margin="0,15,0,5" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Text="Semantic role" />
+                                <ComboBox DisplayMemberPath="Label"
+                                          ItemsSource="{Binding DataContext.FolderRoleChoices, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding Role}"
+                                          SelectedValuePath="Value">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+                                            <Setter Property="ToolTip" Value="{Binding Label}" />
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                                <TextBlock Margin="0,6,0,0" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
+                                           Text="A role lets another ecosystem tool find this folder without depending on its name. Each role can be used once per template."
                                            TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel Visibility="{Binding IsFile, Converter={StaticResource BooleanToVisibilityConverter}}">

@@ -65,6 +65,46 @@ public sealed class GenerationPlanBuilderTests
     }
 
     [Fact]
+    public void ResolvesSemanticPathFromCompleteFolderAncestry()
+    {
+        TemplateDocument template = CreateTemplate(
+        [
+            new FolderNode
+            {
+                NodeId = Guid.CreateVersion7(Timestamp.AddMilliseconds(1)),
+                Name = "DATASET",
+                Children =
+                [
+                    new FolderNode
+                    {
+                        NodeId = Guid.CreateVersion7(Timestamp.AddMilliseconds(2)),
+                        Name = "{{user_name}}",
+                        Role = ProjectPathRoles.CaptureRaw,
+                        Children = [],
+                    },
+                    new FolderNode
+                    {
+                        NodeId = Guid.CreateVersion7(Timestamp.AddMilliseconds(3)),
+                        Name = "processed",
+                        Role = ProjectPathRoles.CaptureProcessed,
+                        Children = [],
+                    },
+                ],
+            },
+        ]) with
+        { SchemaVersion = 2 };
+        GenerationContext context = GenerationContext.CreateNew(
+            Path.Combine(Path.GetTempPath(), "Semantic Path Test"),
+            "Artist",
+            Timestamp);
+
+        GenerationPlan plan = GenerationPlanBuilder.Build(template, context);
+
+        Assert.Equal("DATASET/Artist", plan.SemanticPaths[ProjectPathRoles.CaptureRaw]);
+        Assert.Equal("DATASET/processed", plan.SemanticPaths[ProjectPathRoles.CaptureProcessed]);
+    }
+
+    [Fact]
     public void RejectsReservedProjectIdentityOutput()
     {
         TemplateDocument template = CreateTemplate([

@@ -183,7 +183,7 @@ internal sealed class TemplateEditorViewModel : ObservableObject
 
     public static TemplateEditorViewModel CreateNew() => new(new TemplateDocument
     {
-        SchemaVersion = 1,
+        SchemaVersion = 2,
         TemplateId = Guid.CreateVersion7(),
         Name = "New Template",
         Description = null,
@@ -199,7 +199,7 @@ internal sealed class TemplateEditorViewModel : ObservableObject
 
     private TemplateDocument BuildDocument(int version, DateTimeOffset modified) => new()
     {
-        SchemaVersion = 1,
+        SchemaVersion = 2,
         TemplateId = TemplateId,
         Name = Name,
         Description = Description,

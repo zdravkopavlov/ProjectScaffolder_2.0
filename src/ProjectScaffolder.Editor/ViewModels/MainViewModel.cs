@@ -54,6 +54,13 @@ internal sealed class MainViewModel : ObservableObject
         new(FileCollisionPolicy.Fail, "Fail"),
     ];
 
+    public IReadOnlyList<FolderRoleChoice> FolderRoleChoices { get; } =
+    [
+        new(null, "No semantic role"),
+        new(ProjectPathRoles.CaptureRaw, "Raw capture destination"),
+        new(ProjectPathRoles.CaptureProcessed, "Processed capture destination"),
+    ];
+
     public IReadOnlyList<VariableOption> VariableChoices { get; } =
     [
         new("{{project_name}}", "Project name", "Name of the target folder"),
@@ -88,6 +95,7 @@ internal sealed class MainViewModel : ObservableObject
                 SelectedNode = null;
                 OnPropertyChanged(nameof(SelectedTemplate));
                 OnPropertyChanged(nameof(HasSelectedTemplate));
+                OnPropertyChanged(nameof(CanUpdateProjectStructure));
                 NotifyCommandStates();
                 StatusMessage = value?.HasError == true
                     ? value.ErrorMessage ?? "This template could not be loaded."
@@ -100,15 +108,30 @@ internal sealed class MainViewModel : ObservableObject
 
     public bool HasSelectedTemplate => SelectedTemplate is not null;
 
+    public bool CanUpdateProjectStructure =>
+        SelectedTemplate is { IsNew: false, IsDirty: false, IsValid: true };
+
     public EditorNodeViewModel? SelectedNode
     {
         get => selectedNode;
         set
         {
+            EditorNodeViewModel? previous = selectedNode;
             if (SetProperty(ref selectedNode, value))
             {
+                if (previous is not null)
+                {
+                    previous.Changed -= SelectedNodeChanged;
+                }
+
+                if (value is not null)
+                {
+                    value.Changed += SelectedNodeChanged;
+                }
+
                 OnPropertyChanged(nameof(HasSelectedNode));
                 OnPropertyChanged(nameof(IsProjectRootSelected));
+                RefreshFolderRoleChoices();
                 NotifyCommandStates();
             }
         }
@@ -400,6 +423,38 @@ internal sealed class MainViewModel : ObservableObject
         }
     }
 
+    public async Task<ProjectStructureUpdateResult?> UpdateSelectedProjectStructureAsync(
+        string targetDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        if (!CanUpdateProjectStructure || SelectedTemplate is null)
+        {
+            StatusMessage = "Save a valid template before updating project structure metadata.";
+            return null;
+        }
+
+        try
+        {
+            ProjectStructureUpdateResult result = await ProjectStructureUpdater.UpdateAsync(
+                new ProjectStructureUpdateRequest
+                {
+                    Template = SelectedTemplate.Snapshot(),
+                    TargetDirectory = targetDirectory,
+                },
+                cancellationToken).ConfigureAwait(true);
+            StatusMessage = result.Created
+                ? "Project structure metadata created."
+                : "Project structure metadata updated.";
+            return result;
+        }
+        catch (ProjectStructureUpdateException exception)
+        {
+            string detail = exception.Issues.Count > 0 ? exception.Issues[0].Message : exception.Message;
+            StatusMessage = $"Metadata update failed: {detail}";
+            return null;
+        }
+    }
+
     public async Task<bool> SaveAllDirtyTemplatesAsync()
     {
         foreach (TemplateListItemViewModel item in Templates.Where(item => item.Editor?.IsDirty == true))
@@ -657,9 +712,42 @@ internal sealed class MainViewModel : ObservableObject
         if (sender is TemplateEditorViewModel template && template == SelectedTemplate &&
             e.PropertyName is nameof(TemplateEditorViewModel.IsDirty) or nameof(TemplateEditorViewModel.IsValid))
         {
+            OnPropertyChanged(nameof(CanUpdateProjectStructure));
             NotifyCommandStates();
             StatusMessage = template.ValidationStatus;
         }
+    }
+
+    private void SelectedNodeChanged(object? sender, EventArgs e) => RefreshFolderRoleChoices();
+
+    private void RefreshFolderRoleChoices()
+    {
+        foreach (FolderRoleChoice choice in FolderRoleChoices)
+        {
+            if (choice.Value is null)
+            {
+                choice.SetAvailability(true);
+                continue;
+            }
+
+            EditorNodeViewModel? owner = SelectedTemplate is null
+                ? null
+                : Flatten(SelectedTemplate.Nodes).FirstOrDefault(node =>
+                    node.IsFolder && string.Equals(node.Role, choice.Value, StringComparison.Ordinal));
+            bool available = owner is null || ReferenceEquals(owner, SelectedNode);
+            choice.SetAvailability(available, available || owner is null ? null : GetNodePath(owner));
+        }
+    }
+
+    private static string GetNodePath(EditorNodeViewModel node)
+    {
+        Stack<string> segments = [];
+        for (EditorNodeViewModel? current = node; current is not null; current = current.Parent)
+        {
+            segments.Push(current.Name);
+        }
+
+        return string.Join('/', segments);
     }
 
     private void NotifyCommandStates()

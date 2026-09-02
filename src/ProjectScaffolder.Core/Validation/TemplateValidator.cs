@@ -11,9 +11,9 @@ public sealed partial class TemplateValidator
         ArgumentNullException.ThrowIfNull(template);
         List<ValidationIssue> issues = [];
 
-        if (template.SchemaVersion != 1)
+        if (template.SchemaVersion is not (1 or 2))
         {
-            Add(issues, "schema.unsupported", "$.schemaVersion", "Only template schema version 1 is supported.");
+            Add(issues, "schema.unsupported", "$.schemaVersion", "Only template schema versions 1 and 2 are supported.");
         }
 
         ValidateUuid(template.TemplateId, "$.templateId", "template", issues);
@@ -36,7 +36,8 @@ public sealed partial class TemplateValidator
         }
 
         HashSet<Guid> nodeIds = [];
-        ValidateNodes(template.Nodes, "$.nodes", true, nodeIds, issues);
+        HashSet<string> roles = new(StringComparer.Ordinal);
+        ValidateNodes(template.Nodes, "$.nodes", true, template.SchemaVersion, nodeIds, roles, issues);
         return new ContractValidationResult(issues);
     }
 
@@ -44,7 +45,9 @@ public sealed partial class TemplateValidator
         IReadOnlyList<TemplateNode> nodes,
         string path,
         bool atRoot,
+        int schemaVersion,
         ISet<Guid> nodeIds,
+        ISet<string> roles,
         ICollection<ValidationIssue> issues)
     {
         for (int index = 0; index < nodes.Count; index++)
@@ -62,7 +65,8 @@ public sealed partial class TemplateValidator
             switch (node)
             {
                 case FolderNode folder:
-                    ValidateNodes(folder.Children, $"{nodePath}.children", false, nodeIds, issues);
+                    ValidateRole(folder.Role, $"{nodePath}.role", schemaVersion, roles, issues);
+                    ValidateNodes(folder.Children, $"{nodePath}.children", false, schemaVersion, nodeIds, roles, issues);
                     break;
                 case TextFileNode textFile:
                     ValidateVariables(textFile.Content, $"{nodePath}.content", issues);
@@ -86,9 +90,38 @@ public sealed partial class TemplateValidator
         }
 
         ValidateVariables(name, path, issues);
-        if (atRoot && name.Equals(".projectID.json", StringComparison.OrdinalIgnoreCase))
+        if (atRoot && (name.Equals(".projectID.json", StringComparison.OrdinalIgnoreCase) ||
+                       name.Equals(".projectStructure.json", StringComparison.OrdinalIgnoreCase)))
         {
-            Add(issues, "name.reserved", path, "The root name '.projectID.json' is reserved for project identity metadata.");
+            Add(issues, "name.reserved", path, $"The root name '{name}' is reserved for project metadata.");
+        }
+    }
+
+    private static void ValidateRole(
+        string? role,
+        string path,
+        int schemaVersion,
+        ISet<string> roles,
+        ICollection<ValidationIssue> issues)
+    {
+        if (role is null)
+        {
+            return;
+        }
+
+        if (schemaVersion < 2)
+        {
+            Add(issues, "role.schema", path, "Semantic folder roles require template schema version 2.");
+            return;
+        }
+
+        if (!RolePattern().IsMatch(role))
+        {
+            Add(issues, "role.invalid", path, "A semantic role must be a lowercase dotted identifier such as 'capture.raw'.");
+        }
+        else if (!roles.Add(role))
+        {
+            Add(issues, "role.duplicate", path, $"The semantic role '{role}' may be assigned to only one folder.");
         }
     }
 
@@ -152,4 +185,7 @@ public sealed partial class TemplateValidator
 
     [GeneratedRegex("^[0-9a-f]{64}$", RegexOptions.CultureInvariant)]
     private static partial Regex Sha256Pattern();
+
+    [GeneratedRegex("^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9]*)+$", RegexOptions.CultureInvariant)]
+    private static partial Regex RolePattern();
 }

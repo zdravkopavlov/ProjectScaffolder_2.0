@@ -106,6 +106,31 @@ public sealed class TemplateEditorViewModelTests
     }
 
     [Fact]
+    public void SemanticFolderRoleRoundTripsAndUpgradesTemplateContract()
+    {
+        TemplateEditorViewModel editor = new(CreateTemplate() with
+        {
+            Nodes =
+            [
+                new FolderNode
+                {
+                    NodeId = Guid.CreateVersion7(),
+                    Name = "raw",
+                    Children = [],
+                },
+            ],
+        });
+
+        editor.Nodes[0].Role = ProjectPathRoles.CaptureRaw;
+
+        TemplateDocument snapshot = editor.Snapshot();
+        Assert.Equal(2, snapshot.SchemaVersion);
+        Assert.Equal(ProjectPathRoles.CaptureRaw, Assert.IsType<FolderNode>(snapshot.Nodes[0]).Role);
+        Assert.True(editor.IsDirty);
+        Assert.True(editor.IsValid);
+    }
+
+    [Fact]
     public void AttachedFileReplacementUpdatesPackageReferenceAndDirtyState()
     {
         EditorNodeViewModel asset = EditorNodeViewModel.CreateAssetFile(

@@ -32,6 +32,30 @@ public sealed class ContractExamplesTests
     }
 
     [Fact]
+    public void ApprovedProjectStructureExampleIsValid()
+    {
+        ProjectStructureDocument structure = ValidatedContractReader.ReadProjectStructure(ReadExample("projectStructure.json"));
+
+        Assert.Equal("DATASET/raw", structure.Paths[ProjectPathRoles.CaptureRaw]);
+        Assert.Equal("DATASET/processed", structure.Paths[ProjectPathRoles.CaptureProcessed]);
+        string canonicalJson = ContractJson.Serialize(structure);
+        Assert.Equal(canonicalJson, ContractJson.Serialize(ValidatedContractReader.ReadProjectStructure(canonicalJson)));
+    }
+
+    [Fact]
+    public void TemplateVersionTwoDeclaresCaptureRoles()
+    {
+        TemplateDocument template = ValidatedContractReader.ReadTemplate(ReadExample("photogrammetry-template-v2.json"));
+
+        FolderNode dataset = Assert.IsType<FolderNode>(Assert.Single(template.Nodes));
+        Assert.Equal(2, dataset.Children.Count);
+        FolderNode raw = Assert.IsType<FolderNode>(dataset.Children[0]);
+        FolderNode processed = Assert.IsType<FolderNode>(dataset.Children[1]);
+        Assert.Equal(ProjectPathRoles.CaptureRaw, raw.Role);
+        Assert.Equal(ProjectPathRoles.CaptureProcessed, processed.Role);
+    }
+
+    [Fact]
     public void DemoTemplateIsValidAndDemonstratesHiddenFolder()
     {
         TemplateDocument template = ValidatedContractReader.ReadTemplate(ReadExample("demo-template.json"));

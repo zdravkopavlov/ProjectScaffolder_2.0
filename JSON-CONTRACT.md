@@ -1,23 +1,25 @@
-# Project Scaffolder — JSON Contract Version 1
+# Project Scaffolder — JSON Contracts
 
 | Field | Value |
 | --- | --- |
 | Status | Approved |
-| Contract version | 1 |
-| Last updated | 2026-08-24 |
+| Contract versions | Template 1–2; identity, structure, and library 1 |
+| Last updated | 2026-09-02 |
 | JSON Schema dialect | Draft 2020-12 |
 
 ## 1. Scope and authority
 
-This document defines the semantic rules for Project Scaffolder's version 1 JSON documents. The machine-readable schemas define their structural rules:
+This document defines the semantic rules for Project Scaffolder's persistent JSON documents. The machine-readable schemas define their structural rules:
 
 - [`schemas/template-v1.schema.json`](schemas/template-v1.schema.json)
+- [`schemas/template-v2.schema.json`](schemas/template-v2.schema.json)
 - [`schemas/project-id-v1.schema.json`](schemas/project-id-v1.schema.json)
+- [`schemas/project-structure-v1.schema.json`](schemas/project-structure-v1.schema.json)
 - [`schemas/template-library-v1.schema.json`](schemas/template-library-v1.schema.json)
 
 The schemas and this document are jointly normative. JSON Schema validates shape, required properties, primitive constraints, and discriminated node types. This document defines cross-field and filesystem rules that JSON Schema cannot express completely.
 
-The version 1 contracts are strict. Unknown properties are rejected so misspellings cannot silently change generation behavior.
+Each contract version is strict. Unknown properties are rejected so misspellings cannot silently change generation behavior. Template version 2 adds semantic folder roles; it does not change project identity version 1.
 
 ## 2. JSON serialization rules
 
@@ -60,7 +62,7 @@ Rules:
 
 | Property | Required | Meaning |
 | --- | --- | --- |
-| `schemaVersion` | Yes | Structural contract version. Must be `1`. |
+| `schemaVersion` | Yes | Structural contract version. Supported values are `1` and `2`; the editor writes `2` when saving. |
 | `templateId` | Yes | Stable UUIDv7 identity of this template. |
 | `name` | Yes | User-facing template name, 1–120 characters. |
 | `description` | No | Optional user-facing description, at most 2,000 characters. |
@@ -107,7 +109,7 @@ Every node has a stable UUIDv7 `nodeId`.
 - Variables may appear in names.
 - Validation runs both before and after variable substitution.
 - Resolved names are compared case-insensitively for duplicate detection.
-- `.projectID.json` is reserved at the target root and cannot be created by a template node using any letter casing.
+- `.projectID.json` and `.projectStructure.json` are reserved at the target root and cannot be created by a template node using any letter casing.
 
 ### 4.5 Folder node
 
@@ -117,6 +119,7 @@ Every node has a stable UUIDv7 `nodeId`.
   "type": "folder",
   "name": "SCENES",
   "hidden": false,
+  "role": "capture.raw",
   "children": []
 }
 ```
@@ -129,6 +132,11 @@ Every node has a stable UUIDv7 `nodeId`.
 - Existing output directories are reused.
 - Folder nodes do not have a collision property.
 - A file occupying the required directory path is a blocking conflict.
+- Template schema version 2 permits the optional `role` property. Version 1 rejects it.
+- A role is a lowercase dotted identifier and may occur on only one folder in a template.
+- The known capture roles are `capture.raw`, the destination for original camera captures, and `capture.processed`, the destination for corrected reconstruction inputs.
+- Unknown well-formed roles round-trip and are ignored by consumers that do not understand them.
+- The editor exposes known roles through a controlled selector; folder names and template names never imply a role.
 
 ### 4.6 Text-file node
 
@@ -266,7 +274,39 @@ Additional semantic rules:
 - An idempotent rerun does not update any metadata field.
 - The generator writes the document atomically after other required outputs succeed, applies the Windows Hidden attribute, then rereads and validates it before reporting success.
 
-## 8. Validation layers
+## 8. Project structure document
+
+The generator owns `.projectStructure.json`; templates cannot define or edit it as an ordinary output. It is created when a template declares at least one semantic path and is updated on a valid rerun of the same template.
+
+Its exact structure is defined by [`schemas/project-structure-v1.schema.json`](schemas/project-structure-v1.schema.json). A valid example is [`examples/projectStructure.json`](examples/projectStructure.json).
+
+```json
+{
+  "schemaVersion": 1,
+  "projectId": "01993a74-7a89-7c13-9c54-76b8bf2bb785",
+  "paths": {
+    "capture.raw": "DATASET/raw",
+    "capture.processed": "DATASET/processed"
+  }
+}
+```
+
+Rules:
+
+- `projectId` must match the neighboring valid `.projectID.json`.
+- Paths are resolved generation outputs relative to the project root and always use `/` in JSON.
+- Absolute paths, backslashes, empty segments, `.` segments, and `..` segments are invalid.
+- A declaration records intended structure; consumers still verify current filesystem existence and containment.
+- An existing invalid, mismatched, or reparse-point structure document blocks generation before output is changed.
+- Rerunning the matching template atomically replaces a valid existing structure document with the current resolved roles.
+- If a previous structure document exists and the current template declares no roles, it is retained as a valid document with an empty `paths` object rather than left stale.
+- The generator applies the Windows Hidden attribute, rereads the document, and validates it before committing generation.
+- Structure failure participates in the same conservative rollback transaction as generated files and identity creation.
+- The editor's metadata-only update validates the matching identity and current template roles, requires every resolved role directory to exist, and writes no project content other than `.projectStructure.json`.
+
+The document is a durable separate contract. It is not a temporary extension of `.projectID.json`, and Catalog's private database is not part of this contract.
+
+## 9. Validation layers
 
 Validation occurs in this order:
 
@@ -281,18 +321,20 @@ Validation occurs in this order:
 
 The editor may save only a valid contract. Corrupt or unsupported templates remain visible in the library as read-only error entries so they do not disappear silently.
 
-## 9. Examples
+## 10. Examples
 
 - [`examples/3ds-max-template.json`](examples/3ds-max-template.json)
+- [`examples/photogrammetry-template-v2.json`](examples/photogrammetry-template-v2.json)
 - [`examples/projectID.json`](examples/projectID.json)
+- [`examples/projectStructure.json`](examples/projectStructure.json)
 - [`examples/template-library.json`](examples/template-library.json)
 
 Examples are test vectors. Once the contract is approved, automated contract tests must validate them on every build.
 
-## 10. Forward compatibility
+## 11. Forward compatibility
 
 - New optional behavior requires a new schema version when version 1 readers would otherwise misinterpret it.
-- Version 1 readers reject higher schema versions and never rewrite them.
+- Readers reject unsupported schema versions and never rewrite them.
 - Migrations create a recoverable backup before writing the upgraded document.
 - A migration preserves template and node identities unless the source lacks them.
 - A schema-version change is distinct from `templateVersion`.

@@ -468,6 +468,41 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void UpdateProjectStructure_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFolderDialog dialog = new()
+        {
+            Title = "Choose an existing project folder",
+            Multiselect = false,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        ProjectScaffolder.Core.Generation.ProjectStructureUpdateResult? result =
+            await ViewModel.UpdateSelectedProjectStructureAsync(dialog.FolderName).ConfigureAwait(true);
+        if (result is null)
+        {
+            MessageBox.Show(
+                ViewModel.StatusMessage,
+                "Project structure metadata",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        string paths = string.Join(
+            Environment.NewLine,
+            result.Paths.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => $"{pair.Key}  →  {pair.Value}"));
+        MessageBox.Show(
+            $"{ViewModel.StatusMessage}\n\n{paths}",
+            "Project structure metadata",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
     private static OpenFileDialog CreateAttachmentDialog(string title) => new()
     {
         Title = title,

@@ -191,7 +191,7 @@ internal static class RunnerApplication
         string? version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion;
-        return version?.Split('+', 2)[0] ?? "2.0.0-alpha.2";
+        return version?.Split('+', 2)[0] ?? "2.0.0-alpha.6";
     }
 
     private static string GetDefaultLogsRoot()

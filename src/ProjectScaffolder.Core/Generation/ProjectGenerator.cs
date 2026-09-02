@@ -11,6 +11,7 @@ namespace ProjectScaffolder.Core.Generation;
 public static class ProjectGenerator
 {
     public const string ProjectIdentityFileName = ".projectID.json";
+    public const string ProjectStructureFileName = ".projectStructure.json";
 
     public static async Task<GenerationResult> GenerateAsync(
         GenerationRequest request,
@@ -28,6 +29,11 @@ public static class ProjectGenerator
         ProjectIdentityDocument? existingIdentity = await ReadExistingIdentityAsync(
             identityPath,
             request.Template.TemplateId,
+            cancellationToken).ConfigureAwait(false);
+        string structurePath = Path.Combine(targetDirectory, ProjectStructureFileName);
+        ProjectStructureDocument? existingStructure = await ReadExistingStructureAsync(
+            structurePath,
+            existingIdentity?.ProjectId,
             cancellationToken).ConfigureAwait(false);
 
         GenerationContext context = existingIdentity is null
@@ -140,11 +146,44 @@ public static class ProjectGenerator
                 }
             }
 
+            bool writeStructure = plan.SemanticPaths.Count > 0 || existingStructure is not null;
+            bool createdStructure = writeStructure && existingStructure is null;
+            if (writeStructure)
+            {
+                var structure = new ProjectStructureDocument
+                {
+                    SchemaVersion = 1,
+                    ProjectId = context.ProjectId,
+                    Paths = plan.SemanticPaths,
+                };
+                ContractValidationResult validation = ProjectStructureValidator.Validate(structure);
+                if (!validation.IsValid)
+                {
+                    throw new ContractValidationException("The resolved project structure is invalid.", validation.Issues);
+                }
+
+                byte[] structureBytes = Encoding.UTF8.GetBytes(ContractJson.Serialize(structure));
+                await TransactionalFileWriter.WriteBytesAsync(
+                    structurePath,
+                    structureBytes,
+                    createdStructure ? PreflightDisposition.Create : PreflightDisposition.OverwriteExistingFile,
+                    journal,
+                    cancellationToken).ConfigureAwait(false);
+                File.SetAttributes(structurePath, File.GetAttributes(structurePath) | FileAttributes.Hidden);
+                ProjectStructureDocument persistedStructure = ValidatedContractReader.ReadProjectStructure(
+                    await File.ReadAllTextAsync(structurePath, cancellationToken).ConfigureAwait(false));
+                if (persistedStructure.ProjectId != context.ProjectId)
+                {
+                    throw new IOException("The project structure file did not retain the project ID.");
+                }
+            }
+
             journal.Commit();
             return new GenerationResult
             {
                 ProjectId = context.ProjectId,
                 CreatedProjectIdentity = createdIdentity,
+                CreatedProjectStructure = createdStructure,
                 CreatedDirectoryCount = createdDirectories,
                 ReusedDirectoryCount = reusedDirectories,
                 CreatedFileCount = createdFiles,
@@ -175,7 +214,7 @@ public static class ProjectGenerator
         ContractValidationResult contract = TemplateValidator.Validate(template);
         if (!contract.IsValid)
         {
-            throw new ProjectGenerationException("The selected template violates contract version 1.", contract.Issues);
+            throw new ProjectGenerationException("The selected template violates its supported contract.", contract.Issues);
         }
 
         string directoryName = new DirectoryInfo(templateDirectory).Name;
@@ -210,6 +249,12 @@ public static class ProjectGenerator
         if (Directory.Exists(identityPath))
         {
             throw TargetConflict("target.identityPath", "A directory occupies the reserved .projectID.json path.");
+        }
+
+        string structurePath = Path.Combine(targetDirectory, ProjectStructureFileName);
+        if (Directory.Exists(structurePath))
+        {
+            throw TargetConflict("target.structurePath", "A directory occupies the reserved .projectStructure.json path.");
         }
     }
 
@@ -248,6 +293,50 @@ public static class ProjectGenerator
             throw new ProjectGenerationException(
                 "The existing .projectID.json is unreadable or invalid and must be repaired explicitly.",
                 [new ValidationIssue("target.invalidIdentity", "$.target", "The existing .projectID.json must be repaired explicitly before generation can continue.")],
+                innerException: exception);
+        }
+    }
+
+    private static async Task<ProjectStructureDocument?> ReadExistingStructureAsync(
+        string structurePath,
+        Guid? expectedProjectId,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(structurePath))
+        {
+            return null;
+        }
+
+        if (expectedProjectId is null)
+        {
+            throw TargetConflict("target.orphanStructure", "The target contains .projectStructure.json without a valid .projectID.json.");
+        }
+
+        if (File.GetAttributes(structurePath).HasFlag(FileAttributes.ReparsePoint))
+        {
+            throw TargetConflict("target.structureReparsePoint", "The existing .projectStructure.json is a symbolic link or reparse point.");
+        }
+
+        try
+        {
+            ProjectStructureDocument structure = ValidatedContractReader.ReadProjectStructure(
+                await File.ReadAllTextAsync(structurePath, cancellationToken).ConfigureAwait(false));
+            if (structure.ProjectId != expectedProjectId.Value)
+            {
+                throw TargetConflict("target.structureProjectMismatch", "The existing .projectStructure.json belongs to a different project ID.");
+            }
+
+            return structure;
+        }
+        catch (ProjectGenerationException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or ContractValidationException)
+        {
+            throw new ProjectGenerationException(
+                "The existing .projectStructure.json is unreadable or invalid and must be repaired explicitly.",
+                [new ValidationIssue("target.invalidStructure", "$.target", "The existing .projectStructure.json must be repaired explicitly before generation can continue.")],
                 innerException: exception);
         }
     }

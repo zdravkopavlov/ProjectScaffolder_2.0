@@ -23,6 +23,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
     private bool isEditing;
     private bool isDropTarget;
     private bool isHidden;
+    private string? role;
 
     private EditorNodeViewModel(
         Guid nodeId,
@@ -34,7 +35,8 @@ internal sealed class EditorNodeViewModel : ObservableObject
         string content,
         string? assetPath,
         string? assetSha256,
-        bool isHidden = false)
+        bool isHidden = false,
+        string? role = null)
     {
         NodeId = nodeId;
         Kind = kind;
@@ -46,6 +48,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
         this.assetPath = assetPath;
         this.assetSha256 = assetSha256;
         this.isHidden = isHidden;
+        this.role = role;
         Children.CollectionChanged += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -163,6 +166,18 @@ internal sealed class EditorNodeViewModel : ObservableObject
         }
     }
 
+    public string? Role
+    {
+        get => role;
+        set
+        {
+            if (SetProperty(ref role, value))
+            {
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
     public bool IsEditing
     {
         get => isEditing;
@@ -206,6 +221,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
             NodeId = NodeId,
             Name = Name,
             Hidden = IsHidden,
+            Role = Role,
             Children = Children.Select(child => child.ToContract()).ToArray(),
         },
         EditorNodeKind.TextFile => new TextFileNode
@@ -236,7 +252,7 @@ internal sealed class EditorNodeViewModel : ObservableObject
         Guid id = createNewIds ? Guid.CreateVersion7() : node.NodeId;
         EditorNodeViewModel result = node switch
         {
-            FolderNode folderNode => new EditorNodeViewModel(id, EditorNodeKind.Folder, node.Name, null, TextFileEncodingKind.Utf8, LineEndingKind.CrLf, string.Empty, null, null, folderNode.Hidden),
+            FolderNode folderNode => new EditorNodeViewModel(id, EditorNodeKind.Folder, node.Name, null, TextFileEncodingKind.Utf8, LineEndingKind.CrLf, string.Empty, null, null, folderNode.Hidden, folderNode.Role),
             TextFileNode text => new EditorNodeViewModel(id, EditorNodeKind.TextFile, node.Name, text.Collision, text.Encoding, text.LineEndings, text.Content, null, null),
             AssetFileNode asset => new EditorNodeViewModel(id, EditorNodeKind.AssetFile, node.Name, asset.Collision, TextFileEncodingKind.Utf8, LineEndingKind.CrLf, string.Empty, asset.Asset.Path, asset.Asset.Sha256),
             _ => throw new NotSupportedException($"Unsupported template node type '{node.GetType().Name}'."),

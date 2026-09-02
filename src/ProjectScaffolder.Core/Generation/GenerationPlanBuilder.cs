@@ -20,15 +20,16 @@ public static class GenerationPlanBuilder
 
         IReadOnlyDictionary<string, string> variables = context.ToVariableValues();
         List<GenerationOperation> operations = [];
+        Dictionary<string, string> semanticPaths = new(StringComparer.Ordinal);
         Dictionary<string, (bool IsDirectory, string SourcePath)> outputs = new(StringComparer.OrdinalIgnoreCase);
-        BuildNodes(template.Nodes, [], "$.nodes", template.DefaultFileCollision, context, variables, outputs, operations, issues);
+        BuildNodes(template.Nodes, [], "$.nodes", template.DefaultFileCollision, context, variables, outputs, operations, semanticPaths, issues);
 
         if (issues.Count > 0)
         {
             throw new GenerationPlanException(issues);
         }
 
-        return new GenerationPlan(context, operations);
+        return new GenerationPlan(context, operations, semanticPaths);
     }
 
     private static void BuildNodes(
@@ -40,6 +41,7 @@ public static class GenerationPlanBuilder
         IReadOnlyDictionary<string, string> variables,
         IDictionary<string, (bool IsDirectory, string SourcePath)> outputs,
         ICollection<GenerationOperation> operations,
+        IDictionary<string, string> semanticPaths,
         ICollection<ValidationIssue> issues)
     {
         for (int index = 0; index < nodes.Count; index++)
@@ -64,9 +66,11 @@ public static class GenerationPlanBuilder
                 continue;
             }
 
-            if (parentComponents.Length == 0 && resolvedName.Equals(".projectID.json", StringComparison.OrdinalIgnoreCase))
+            if (parentComponents.Length == 0 &&
+                (resolvedName.Equals(ProjectGenerator.ProjectIdentityFileName, StringComparison.OrdinalIgnoreCase) ||
+                 resolvedName.Equals(ProjectGenerator.ProjectStructureFileName, StringComparison.OrdinalIgnoreCase)))
             {
-                issues.Add(new ValidationIssue("name.reserved", $"{nodePath}.name", "The resolved root name '.projectID.json' is reserved."));
+                issues.Add(new ValidationIssue("name.reserved", $"{nodePath}.name", $"The resolved root name '{resolvedName}' is reserved."));
                 continue;
             }
 
@@ -96,7 +100,12 @@ public static class GenerationPlanBuilder
             {
                 case FolderNode folder:
                     operations.Add(new CreateDirectoryOperation(folder.NodeId, relativePath, fullPath, folder.Hidden));
-                    BuildNodes(folder.Children, components, $"{nodePath}.children", defaultCollision, context, variables, outputs, operations, issues);
+                    if (folder.Role is not null)
+                    {
+                        semanticPaths.Add(folder.Role, string.Join('/', components));
+                    }
+
+                    BuildNodes(folder.Children, components, $"{nodePath}.children", defaultCollision, context, variables, outputs, operations, semanticPaths, issues);
                     break;
                 case TextFileNode textFile:
                     try

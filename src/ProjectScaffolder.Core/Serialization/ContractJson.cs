@@ -16,6 +16,9 @@ public static class ContractJson
     public static ProjectIdentityDocument DeserializeProjectIdentity(string json) =>
         Deserialize<ProjectIdentityDocument>(json);
 
+    public static ProjectStructureDocument DeserializeProjectStructure(string json) =>
+        Deserialize<ProjectStructureDocument>(json);
+
     public static TemplateLibraryDocument DeserializeTemplateLibrary(string json) =>
         Deserialize<TemplateLibraryDocument>(json);
 

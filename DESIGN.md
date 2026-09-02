@@ -4,8 +4,8 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.7 |
-| Last updated | 2026-08-24 |
+| Document version | 1.8 |
+| Last updated | 2026-09-02 |
 | Target platform | Windows 11 x64 |
 
 ## 1. Purpose of this document
@@ -51,6 +51,8 @@ The user creates and names an empty project folder, enters it, right-clicks its 
 An editor provides a visual way to create templates containing folders and optional files, preview and validate them, and choose which templates appear in the Explorer submenu.
 
 Every scaffolded project receives a stable `.projectID.json` metadata file. The file contains a unique project identifier, creation timestamp, and provenance needed for possible future database integration.
+
+Templates may also declare semantic folder roles. When present, generation records their resolved project-relative paths in `.projectStructure.json`, allowing related tools to find a destination without hardcoding a folder or template name.
 
 ## 3. Product principles
 
@@ -157,6 +159,10 @@ Every scaffolded project receives a stable `.projectID.json` metadata file. The 
 | D-039 | `.projectThumbnail.jpg` is reserved as an optional future catalog-managed root convention. Project Scaffolder does not create or manage it. | Confirmed |
 | D-040 | Project Scaffolder is published as an open-source project under the MIT License, with third-party notices retained for redistributed artwork. | Confirmed |
 | D-041 | Public repository changes are validated by a Windows GitHub Actions workflow; unsigned alpha installers are distributed only as clearly labeled pre-releases with a SHA-256 checksum. | Confirmed |
+| D-042 | Template schema version 2 adds optional unique semantic roles to folder nodes, beginning with `capture.raw`; template version 1 remains readable. | Confirmed |
+| D-043 | Scaffolder owns a separate durable `.projectStructure.json` version 1 document that maps semantic roles to resolved project-relative paths. | Confirmed |
+| D-044 | Existing projects without a structure document remain valid; consuming tools may use an explicitly bounded legacy convention while adoption proceeds. | Confirmed |
+| D-045 | Existing projects may receive structure metadata through an explicit metadata-only update that requires a matching Template ID and existing resolved role directories. | Confirmed |
 
 ## 7. User workflows
 
@@ -360,9 +366,11 @@ A template is a versioned JSON document with:
 
 Explorer enabled state and menu order are local library settings, not template properties. They do not travel with exported templates.
 
-### 10.2 Version 1 contract
+### 10.2 Template contract versions 1 and 2
 
 The exact version 1 contract is documented in [`JSON-CONTRACT.md`](JSON-CONTRACT.md) and enforced structurally by [`schemas/template-v1.schema.json`](schemas/template-v1.schema.json). Complete valid examples include the bundled generic [`examples/demo-template.json`](examples/demo-template.json) and the specialized [`examples/3ds-max-template.json`](examples/3ds-max-template.json).
+
+Version 2 is enforced by [`schemas/template-v2.schema.json`](schemas/template-v2.schema.json) and adds only the optional semantic `role` on folder nodes. The editor reads both versions and writes version 2 when a template is saved. [`examples/photogrammetry-template-v2.json`](examples/photogrammetry-template-v2.json) demonstrates `capture.raw` and `capture.processed` without making the specialist template a bundled default.
 
 The persisted top-level shape is:
 
@@ -415,6 +423,8 @@ Arbitrary executable hooks are deliberately excluded.
 
 A folder may optionally request the Windows Hidden attribute. The property is conservative: it is applied only when generation creates that folder. Existing directories are reused without changing their attributes, and the implicit project root has no attribute option.
 
+In template version 2, a folder may also declare one semantic role. Roles describe meaning rather than spelling: `capture.raw` identifies the destination for original camera captures and `capture.processed` identifies corrected reconstruction inputs, regardless of their safe project-relative spelling. Each role is unique within a template. Unknown well-formed roles are preserved, while the editor initially offers only approved known roles.
+
 The engine and editor use only generic node concepts. They contain no MXP-specific model, parser, tab, or generator. MXP, Maya `workspace.mel`, Unreal `.uproject`, Godot `project.godot`, production notes, manifests, and similar formats are represented as ordinary editable text files. Binary DCC starter scenes and other immutable resources are represented as attached asset files.
 
 ### 10.4 Bundled starter templates
@@ -423,7 +433,7 @@ The initial installation demonstrates the generic model with one `Demo Project` 
 
 The 3ds Max contract example remains in the repository as evidence that DCC-specific workflows fit the generic model, but it is not seeded into new user libraries.
 
-Bundled templates are ordinary version 1 templates. Users may inspect, duplicate, edit, export, unregister, or delete their user-owned copies. Application upgrades never overwrite modified user copies.
+Bundled templates may remain version 1 until edited. Users may inspect, duplicate, edit, export, unregister, or delete their user-owned copies. Application upgrades never overwrite modified user copies.
 
 ### 10.5 Template packaging
 
@@ -557,6 +567,16 @@ Automatic duplicate detection requires a database or index and is deferred.
 
 The leading dot does not hide a file on Windows, so the runner applies the Windows Hidden attribute to `.projectID.json` after creating it. The file remains available to software, source control, backup tools, and users who enable hidden-file display. If applying the attribute fails, project generation reports a failure and follows normal rollback rules so the metadata contract is not only partially fulfilled.
 
+### 12.8 `.projectStructure.json`
+
+When a template declares semantic folder roles, Scaffolder writes a separate engine-owned `.projectStructure.json`. Its version 1 schema is [`schemas/project-structure-v1.schema.json`](schemas/project-structure-v1.schema.json), with [`examples/projectStructure.json`](examples/projectStructure.json) as the canonical example.
+
+The document binds to the neighboring identity through the same `projectId` and maps roles to resolved forward-slash relative paths. It contains no absolute project path. Generation validates an existing document and its identity match before changing output, atomically creates or replaces it inside the normal operation journal, applies the Windows Hidden attribute, then rereads it before commit. A malformed, mismatched, or reparse-point document is a blocking error requiring explicit repair.
+
+This structure contract is durable and separate from project identity. It allows RawEqualizer and later tools to ask for `capture.raw` or `capture.processed` without recognizing a template name or hardcoded folder spelling. Consumers remain responsible for verifying that a declared path currently exists, stays within the project root, and is suitable for their operation.
+
+The editor also provides a metadata-only update for an existing project. It uses the selected saved template, verifies that `.projectID.json` records the same Template ID, resolves roles using the stable identity values and current project path, and requires every destination directory to exist without reparse traversal. It creates or atomically replaces only `.projectStructure.json`; it never reapplies template folders or files.
+
 ## 13. Generation engine
 
 ### 13.1 Generation stages
@@ -564,15 +584,17 @@ The leading dot does not hide a file on Windows, so the runner applies the Windo
 1. Resolve target folder and template.
 2. Load and validate the template schema.
 3. Inspect existing `.projectID.json` if present and verify that its template ID matches the selected template.
-4. Create one immutable generation context.
-5. Resolve variables.
-6. Normalize and validate all output paths.
-7. Detect duplicate and conflicting planned outputs.
-8. Determine collision actions without writing.
-9. Create directories.
-10. Create or copy files according to collision rules.
-11. Write `.projectID.json` when needed.
-12. Flush the operation log and exit successfully.
+4. Inspect existing `.projectStructure.json` if present and verify that its project ID matches the identity.
+5. Create one immutable generation context.
+6. Resolve variables, output paths, and semantic folder paths.
+7. Normalize and validate all output paths.
+8. Detect duplicate and conflicting planned outputs.
+9. Determine collision actions without writing.
+10. Create directories.
+11. Create or copy files according to collision rules.
+12. Write `.projectID.json` when needed.
+13. Atomically create or update `.projectStructure.json` when semantic structure state exists.
+14. Flush the operation log and exit successfully.
 
 ### 13.2 Idempotence
 
@@ -905,6 +927,7 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 - [x] Initialize the repository and solution.
 - [x] Add formatting, build, and test conventions.
 - [x] Implement template and metadata contracts.
+- [x] Add template schema version 2 semantic folder roles and project structure schema version 1.
 - [x] Implement template persistence and schema validation.
 - [x] Implement safe path normalization.
 - [x] Implement variable resolution.
@@ -915,6 +938,8 @@ The version 1.0 design baseline is approved. Implementation may proceed mileston
 
 - [x] Implement filesystem generation.
 - [x] Implement `.projectID.json` behavior.
+- [x] Implement transactional `.projectStructure.json` generation and rerun validation.
+- [x] Implement the explicit metadata-only structure update for existing matching projects.
 - [x] Implement operation journaling and rollback.
 - [x] Implement silent success and failure dialog.
 - [x] Implement diagnostic logging.
@@ -948,6 +973,7 @@ Current verified editor slice:
 - [x] Remove templates with confirmation and retain saved packages in the recoverable application Trash folder.
 - [x] Add attached-file management and asset-safe duplication.
 - [x] Add variable insertion for inline names and editable text, plus a non-mutating resolved preview.
+- [x] Add the controlled semantic-role selector for folder nodes with continuous uniqueness validation.
 
 Deferred beyond the initial release: clipboard operations, delete undo, manual library ordering, folder import, template package import/export, text search/replace, and disposable test generation. These features should return only in response to a demonstrated workflow need.
 
@@ -1071,6 +1097,10 @@ Project Scaffolder only reserves and documents this convention. It does not crea
 | 2026-08-25 | Reserve `.projectThumbnail.jpg` for a future catalog and keep it out of scaffolder behavior. | A catalog is the right owner for thumbnail capture, normalization, caching, and replacement; the scaffolder should stay focused. |
 | 2026-08-26 | Publish Project Scaffolder under the MIT License and retain Lucide/Feather notices. | A permissive license matches the author's previous public work while making reuse rights and third-party attribution explicit. |
 | 2026-08-26 | Add Windows CI and distribute alpha.2 as an explicitly unsigned GitHub pre-release with a checksum. | Public builds should be reproducibly validated, and users must be able to distinguish an unsigned test artifact from a signed production release. |
+| 2026-09-02 | Add semantic folder roles in template schema version 2, beginning with `capture.raw`. | Related tools need to locate a folder by meaning without coupling to a template name or hardcoded path; version 1 templates remain readable. |
+| 2026-09-02 | Keep resolved semantic paths in a durable Scaffolder-owned `.projectStructure.json` version 1 contract. | A separate strict document preserves project identity version 1, permits incremental consumer adoption, and avoids exposing another application's private database as an ecosystem API. |
+| 2026-09-02 | Treat malformed or mismatched existing structure metadata as a blocking repair condition. | Silently falling back after an explicit declaration is damaged could direct imported data to an unintended folder. |
+| 2026-09-02 | Add `capture.processed` and an explicit metadata-only update for existing matching projects. | RawEqualizer needs a durable processed-image destination, while reapplying the full template could overwrite unrelated project content. |
 
 ## 27. Authoritative references
 

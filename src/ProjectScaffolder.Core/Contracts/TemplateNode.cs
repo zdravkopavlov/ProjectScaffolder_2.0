@@ -17,6 +17,9 @@ public sealed record FolderNode : TemplateNode
 {
     public bool Hidden { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Role { get; init; }
+
     public required IReadOnlyList<TemplateNode> Children { get; init; }
 }
 

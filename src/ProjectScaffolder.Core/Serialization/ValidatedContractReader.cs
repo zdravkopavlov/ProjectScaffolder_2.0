@@ -11,6 +11,9 @@ public static class ValidatedContractReader
     public static ProjectIdentityDocument ReadProjectIdentity(string json) =>
         EnsureValid(ContractJson.DeserializeProjectIdentity(json), ProjectIdentityValidator.Validate, "project identity");
 
+    public static ProjectStructureDocument ReadProjectStructure(string json) =>
+        EnsureValid(ContractJson.DeserializeProjectStructure(json), ProjectStructureValidator.Validate, "project structure");
+
     public static TemplateLibraryDocument ReadTemplateLibrary(string json) =>
         EnsureValid(ContractJson.DeserializeTemplateLibrary(json), TemplateLibraryValidator.Validate, "template library");
 
@@ -19,7 +22,7 @@ public static class ValidatedContractReader
         ContractValidationResult result = validate(document);
         if (!result.IsValid)
         {
-            throw new ContractValidationException($"The {label} document violates contract version 1.", result.Issues);
+            throw new ContractValidationException($"The {label} document violates its supported contract.", result.Issues);
         }
 
         return document;

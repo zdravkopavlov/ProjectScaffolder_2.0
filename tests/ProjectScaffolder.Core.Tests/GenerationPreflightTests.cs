@@ -15,7 +15,7 @@ public sealed class GenerationPreflightTests
             CreateFile(context, "keep.txt", FileCollisionPolicy.Skip),
             CreateFile(context, "replace.txt", FileCollisionPolicy.Overwrite),
             CreateFile(context, "blocked.txt", FileCollisionPolicy.Fail),
-        ]);
+        ], new Dictionary<string, string>());
         FakeFileSystemProbe probe = new(new Dictionary<string, FileSystemEntryKind>(StringComparer.OrdinalIgnoreCase)
         {
             [Path.Combine(context.ProjectPath, "SCENES")] = FileSystemEntryKind.Directory,
@@ -40,7 +40,7 @@ public sealed class GenerationPreflightTests
     {
         GenerationContext context = GenerationContext.CreateNew(Path.Combine(Path.GetTempPath(), "Reparse Test"));
         CreateFileOperation file = CreateFile(context, "linked.txt", FileCollisionPolicy.Overwrite);
-        GenerationPlan plan = new(context, [file]);
+        GenerationPlan plan = new(context, [file], new Dictionary<string, string>());
         FakeFileSystemProbe probe = new(new Dictionary<string, FileSystemEntryKind>
         {
             [file.FullPath] = FileSystemEntryKind.ReparsePoint,

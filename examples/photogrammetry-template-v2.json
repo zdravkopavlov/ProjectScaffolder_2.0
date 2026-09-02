@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "templateId": "019d0020-1000-7a10-8a01-000000000001",
+  "name": "Photogrammetry",
+  "description": "Example declaring semantic destinations for original and processed camera captures",
+  "templateVersion": 1,
+  "createdAtUtc": "2026-09-02T12:00:00.000Z",
+  "modifiedAtUtc": "2026-09-02T12:00:00.000Z",
+  "defaultFileCollision": "skip",
+  "nodes": [
+    {
+      "nodeId": "019d0020-1001-7a10-8a01-000000000002",
+      "type": "folder",
+      "name": "DATASET",
+      "children": [
+        {
+          "nodeId": "019d0020-1002-7a10-8a01-000000000003",
+          "type": "folder",
+          "name": "raw",
+          "role": "capture.raw",
+          "children": []
+        },
+        {
+          "nodeId": "019d0020-1003-7a10-8a01-000000000004",
+          "type": "folder",
+          "name": "processed",
+          "role": "capture.processed",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

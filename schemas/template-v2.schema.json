@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Scaffolder Template v2",
+  "description": "Persistent template contract with optional semantic folder roles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "templateId",
+    "name",
+    "templateVersion",
+    "createdAtUtc",
+    "modifiedAtUtc",
+    "defaultFileCollision",
+    "nodes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "templateId": { "$ref": "#/$defs/uuidV7" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "description": { "type": "string", "maxLength": 2000 },
+    "templateVersion": { "type": "integer", "minimum": 1 },
+    "createdAtUtc": { "$ref": "#/$defs/utcTimestamp" },
+    "modifiedAtUtc": { "$ref": "#/$defs/utcTimestamp" },
+    "defaultFileCollision": { "$ref": "#/$defs/fileCollision" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    }
+  },
+  "$defs": {
+    "uuidV7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "nodeName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!\\.{1,2}$)(?!.*[ .]$)[^<>:\"/\\\\|?*\\u0000-\\u001F]+$"
+    },
+    "semanticRole": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$"
+    },
+    "fileCollision": {
+      "type": "string",
+      "enum": ["skip", "overwrite", "fail"]
+    },
+    "node": {
+      "oneOf": [
+        { "$ref": "#/$defs/folderNode" },
+        { "$ref": "#/$defs/textFileNode" },
+        { "$ref": "#/$defs/assetFileNode" }
+      ]
+    },
+    "folderNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeId", "type", "name", "children"],
+      "properties": {
+        "nodeId": { "$ref": "#/$defs/uuidV7" },
+        "type": { "const": "folder" },
+        "name": { "$ref": "#/$defs/nodeName" },
+        "hidden": { "type": "boolean" },
+        "role": { "$ref": "#/$defs/semanticRole" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/node" }
+        }
+      }
+    },
+    "textFileNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeId", "type", "name", "encoding", "lineEndings", "content"],
+      "properties": {
+        "nodeId": { "$ref": "#/$defs/uuidV7" },
+        "type": { "const": "textFile" },
+        "name": { "$ref": "#/$defs/nodeName" },
+        "collision": { "$ref": "#/$defs/fileCollision" },
+        "encoding": {
+          "type": "string",
+          "enum": ["utf-8", "utf-8-bom", "utf-16-le", "windows-1252"]
+        },
+        "lineEndings": {
+          "type": "string",
+          "enum": ["crlf", "lf"]
+        },
+        "content": { "type": "string" }
+      }
+    },
+    "assetFileNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeId", "type", "name", "asset"],
+      "properties": {
+        "nodeId": { "$ref": "#/$defs/uuidV7" },
+        "type": { "const": "assetFile" },
+        "name": { "$ref": "#/$defs/nodeName" },
+        "collision": { "$ref": "#/$defs/fileCollision" },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^assets/[A-Za-z0-9._/-]+$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

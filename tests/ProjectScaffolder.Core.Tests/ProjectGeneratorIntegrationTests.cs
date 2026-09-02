@@ -28,6 +28,59 @@ public sealed class ProjectGeneratorIntegrationTests
         Assert.Equal(result.ProjectId, identity.ProjectId);
         Assert.Equal(template.TemplateId, identity.Template.Id);
         Assert.Equal("Hotel Lobby", identity.ProjectName);
+        Assert.False(result.CreatedProjectStructure);
+        Assert.False(File.Exists(Path.Combine(workspace.TargetDirectory, ProjectGenerator.ProjectStructureFileName)));
+    }
+
+    [Fact]
+    public async Task GeneratesAndUpdatesSemanticProjectStructure()
+    {
+        using TestWorkspace workspace = new();
+        TemplateDocument template = workspace.CreateTemplate([1, 2, 3]);
+        FolderNode scenes = Assert.IsType<FolderNode>(template.Nodes[0]);
+        FolderNode assets = Assert.IsType<FolderNode>(template.Nodes[1]);
+        template = template with
+        {
+            SchemaVersion = 2,
+            Nodes = [scenes with { Role = ProjectPathRoles.CaptureRaw }, assets, .. template.Nodes.Skip(2)],
+        };
+
+        GenerationResult first = await ProjectGenerator.GenerateAsync(workspace.CreateRequest(template));
+
+        string structurePath = Path.Combine(workspace.TargetDirectory, ProjectGenerator.ProjectStructureFileName);
+        Assert.True(first.CreatedProjectStructure);
+        Assert.True(File.GetAttributes(structurePath).HasFlag(FileAttributes.Hidden));
+        ProjectStructureDocument firstStructure = ValidatedContractReader.ReadProjectStructure(await File.ReadAllTextAsync(structurePath));
+        Assert.Equal(first.ProjectId, firstStructure.ProjectId);
+        Assert.Equal("SCENES", firstStructure.Paths[ProjectPathRoles.CaptureRaw]);
+
+        template = template with
+        {
+            Nodes = [scenes with { Role = null }, assets with { Role = ProjectPathRoles.CaptureRaw }, .. template.Nodes.Skip(2)],
+        };
+        GenerationResult second = await ProjectGenerator.GenerateAsync(workspace.CreateRequest(template));
+
+        Assert.False(second.CreatedProjectStructure);
+        ProjectStructureDocument secondStructure = ValidatedContractReader.ReadProjectStructure(await File.ReadAllTextAsync(structurePath));
+        Assert.Equal("ASSETS", secondStructure.Paths[ProjectPathRoles.CaptureRaw]);
+    }
+
+    [Fact]
+    public async Task RefusesInvalidExistingProjectStructureBeforeWriting()
+    {
+        using TestWorkspace workspace = new();
+        TemplateDocument template = workspace.CreateTemplate([9]);
+        await ProjectGenerator.GenerateAsync(workspace.CreateRequest(template));
+        string structurePath = Path.Combine(workspace.TargetDirectory, ProjectGenerator.ProjectStructureFileName);
+        await File.WriteAllTextAsync(structurePath, "{ not-json");
+        string marker = Path.Combine(workspace.TargetDirectory, "artist-work.txt");
+        await File.WriteAllTextAsync(marker, "keep");
+
+        ProjectGenerationException exception = await Assert.ThrowsAsync<ProjectGenerationException>(
+            () => ProjectGenerator.GenerateAsync(workspace.CreateRequest(template)));
+
+        Assert.Contains("must be repaired explicitly", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("keep", await File.ReadAllTextAsync(marker));
     }
 
     [Fact]

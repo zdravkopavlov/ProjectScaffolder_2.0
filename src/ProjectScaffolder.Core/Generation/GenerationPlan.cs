@@ -5,7 +5,8 @@ namespace ProjectScaffolder.Core.Generation;
 
 public sealed record GenerationPlan(
     GenerationContext Context,
-    IReadOnlyList<GenerationOperation> Operations);
+    IReadOnlyList<GenerationOperation> Operations,
+    IReadOnlyDictionary<string, string> SemanticPaths);
 
 public abstract record GenerationOperation(Guid NodeId, string RelativePath, string FullPath);
 

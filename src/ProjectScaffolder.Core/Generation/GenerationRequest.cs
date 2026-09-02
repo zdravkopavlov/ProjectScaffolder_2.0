@@ -21,6 +21,8 @@ public sealed record GenerationResult
 
     public required bool CreatedProjectIdentity { get; init; }
 
+    public required bool CreatedProjectStructure { get; init; }
+
     public required int CreatedDirectoryCount { get; init; }
 
     public required int ReusedDirectoryCount { get; init; }

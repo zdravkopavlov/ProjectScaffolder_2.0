@@ -11,13 +11,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>ProjectScaffolder.Editor</AssemblyName>
-    <Version>2.0.0-alpha.2</Version>
+    <Version>2.0.0-alpha.6</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\ProjectScaffolder.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="..\..\examples\demo-template.json" Link="SeedTemplates\demo-template.json" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\EcosystemLogo.jpg" />
     <Resource Include="Assets\ProjectScaffolder.ico" />
     <None Update="Assets\file-box.svg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
