@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "2.0.0-alpha.6"
+  #define AppVersion "2.0.0-alpha.7"
 #endif
 #ifndef SourceDir
   #error SourceDir must point to the self-contained publish directory.
@@ -29,7 +29,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
 ChangesAssociations=yes
-VersionInfoVersion=2.0.0.6
+VersionInfoVersion=2.0.0.7
 VersionInfoDescription=Project Scaffolder per-user installer
 
 [Files]

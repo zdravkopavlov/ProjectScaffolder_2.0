@@ -124,6 +124,61 @@ public sealed class ProjectStructureUpdaterTests
         }
     }
 
+    [Fact]
+    public async Task AddsCliBuilderRolesToExistingMetadataWithoutChangingProjectId()
+    {
+        string root = CreateProjectRoot("Existing CLIBuilder Project");
+        try
+        {
+            TemplateDocument template = CreateCliBuilderTemplate();
+            ProjectIdentityDocument identity = CreateIdentity(template, "Original Project");
+            await WriteIdentityAsync(root, identity);
+            foreach (string relativePath in new[]
+            {
+                Path.Combine("DATASET", "Original Project"),
+                Path.Combine("DATASET", "processed"),
+                Path.Combine("REALITYSCAN", "projects"),
+                Path.Combine("REALITYSCAN", "alignment-components"),
+                Path.Combine("EXPORT", "models"),
+            })
+            {
+                Directory.CreateDirectory(Path.Combine(root, relativePath));
+            }
+
+            string structurePath = Path.Combine(root, ProjectGenerator.ProjectStructureFileName);
+            await File.WriteAllTextAsync(structurePath, ContractJson.Serialize(new ProjectStructureDocument
+            {
+                SchemaVersion = 1,
+                ProjectId = identity.ProjectId,
+                Paths = new Dictionary<string, string>
+                {
+                    [ProjectPathRoles.CaptureRaw] = "DATASET/Original Project",
+                    [ProjectPathRoles.CaptureProcessed] = "DATASET/processed",
+                },
+            }));
+
+            ProjectStructureUpdateResult result = await ProjectStructureUpdater.UpdateAsync(new ProjectStructureUpdateRequest
+            {
+                Template = template,
+                TargetDirectory = root,
+            });
+
+            Assert.False(result.Created);
+            Assert.Equal(identity.ProjectId, result.ProjectId);
+            Assert.Equal("REALITYSCAN/projects", result.Paths[ProjectPathRoles.RealityScanProjects]);
+            Assert.Equal("REALITYSCAN/alignment-components", result.Paths[ProjectPathRoles.RealityScanAlignmentComponents]);
+            Assert.Equal("EXPORT/models", result.Paths[ProjectPathRoles.ModelExports]);
+            ProjectStructureDocument persisted = ValidatedContractReader.ReadProjectStructure(
+                await File.ReadAllTextAsync(structurePath));
+            Assert.Equal(identity.ProjectId, persisted.ProjectId);
+            Assert.Equal(5, persisted.Paths.Count);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static TemplateDocument CreateTemplate()
     {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
@@ -157,6 +212,55 @@ public sealed class ProjectStructureUpdaterTests
                             NodeId = Guid.CreateVersion7(timestamp.AddMilliseconds(3)),
                             Name = "processed",
                             Role = ProjectPathRoles.CaptureProcessed,
+                            Children = [],
+                        },
+                    ],
+                },
+            ],
+        };
+    }
+
+    private static TemplateDocument CreateCliBuilderTemplate()
+    {
+        TemplateDocument template = CreateTemplate();
+        return template with
+        {
+            Nodes =
+            [
+                .. template.Nodes,
+                new FolderNode
+                {
+                    NodeId = Guid.CreateVersion7(),
+                    Name = "REALITYSCAN",
+                    Children =
+                    [
+                        new FolderNode
+                        {
+                            NodeId = Guid.CreateVersion7(),
+                            Name = "projects",
+                            Role = ProjectPathRoles.RealityScanProjects,
+                            Children = [],
+                        },
+                        new FolderNode
+                        {
+                            NodeId = Guid.CreateVersion7(),
+                            Name = "alignment-components",
+                            Role = ProjectPathRoles.RealityScanAlignmentComponents,
+                            Children = [],
+                        },
+                    ],
+                },
+                new FolderNode
+                {
+                    NodeId = Guid.CreateVersion7(),
+                    Name = "EXPORT",
+                    Children =
+                    [
+                        new FolderNode
+                        {
+                            NodeId = Guid.CreateVersion7(),
+                            Name = "models",
+                            Role = ProjectPathRoles.ModelExports,
                             Children = [],
                         },
                     ],

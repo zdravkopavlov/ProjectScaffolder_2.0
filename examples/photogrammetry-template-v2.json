@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "templateId": "019d0020-1000-7a10-8a01-000000000001",
   "name": "Photogrammetry",
-  "description": "Example declaring semantic destinations for original and processed camera captures",
+  "description": "Example declaring semantic destinations for captures, RealityScan files, and model exports",
   "templateVersion": 1,
   "createdAtUtc": "2026-09-02T12:00:00.000Z",
   "modifiedAtUtc": "2026-09-02T12:00:00.000Z",
@@ -25,6 +25,41 @@
           "type": "folder",
           "name": "processed",
           "role": "capture.processed",
+          "children": []
+        }
+      ]
+    },
+    {
+      "nodeId": "019d0020-1004-7a10-8a01-000000000005",
+      "type": "folder",
+      "name": "REALITYSCAN",
+      "children": [
+        {
+          "nodeId": "019d0020-1005-7a10-8a01-000000000006",
+          "type": "folder",
+          "name": "projects",
+          "role": "realityscan.projects",
+          "children": []
+        },
+        {
+          "nodeId": "019d0020-1006-7a10-8a01-000000000007",
+          "type": "folder",
+          "name": "alignment-components",
+          "role": "realityscan.alignment.components",
+          "children": []
+        }
+      ]
+    },
+    {
+      "nodeId": "019d0020-1007-7a10-8a01-000000000008",
+      "type": "folder",
+      "name": "EXPORT",
+      "children": [
+        {
+          "nodeId": "019d0020-1008-7a10-8a01-000000000009",
+          "type": "folder",
+          "name": "models",
+          "role": "model.exports",
           "children": []
         }
       ]

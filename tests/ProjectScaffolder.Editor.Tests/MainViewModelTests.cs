@@ -271,12 +271,19 @@ public sealed class MainViewModelTests
     }
 
     [Fact]
-    public void FolderRoleMenuContainsRawAndProcessedCaptureDestinations()
+    public void FolderRoleMenuContainsAllApprovedSemanticDestinations()
     {
         MainViewModel viewModel = CreateViewModel();
 
         Assert.Equal(
-            [null, ProjectPathRoles.CaptureRaw, ProjectPathRoles.CaptureProcessed],
+            [
+                null,
+                ProjectPathRoles.CaptureRaw,
+                ProjectPathRoles.CaptureProcessed,
+                ProjectPathRoles.RealityScanProjects,
+                ProjectPathRoles.RealityScanAlignmentComponents,
+                ProjectPathRoles.ModelExports,
+            ],
             viewModel.FolderRoleChoices.Select(choice => choice.Value));
     }
 

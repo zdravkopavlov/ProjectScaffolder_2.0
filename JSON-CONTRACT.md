@@ -135,6 +135,7 @@ Every node has a stable UUIDv7 `nodeId`.
 - Template schema version 2 permits the optional `role` property. Version 1 rejects it.
 - A role is a lowercase dotted identifier and may occur on only one folder in a template.
 - The known capture roles are `capture.raw`, the destination for original camera captures, and `capture.processed`, the destination for corrected reconstruction inputs.
+- The known CLIBuilder roles are `realityscan.projects` for persistent `.rsproj` projects, `realityscan.alignment.components` for persistent `.rsalign` alignment components, and `model.exports` for exported models and accompanying textures.
 - Unknown well-formed roles round-trip and are ignored by consumers that do not understand them.
 - The editor exposes known roles through a controlled selector; folder names and template names never imply a role.
 
@@ -286,7 +287,10 @@ Its exact structure is defined by [`schemas/project-structure-v1.schema.json`](s
   "projectId": "01993a74-7a89-7c13-9c54-76b8bf2bb785",
   "paths": {
     "capture.raw": "DATASET/raw",
-    "capture.processed": "DATASET/processed"
+    "capture.processed": "DATASET/processed",
+    "realityscan.projects": "REALITYSCAN/projects",
+    "realityscan.alignment.components": "REALITYSCAN/alignment-components",
+    "model.exports": "EXPORT/models"
   }
 }
 ```
@@ -303,8 +307,11 @@ Rules:
 - The generator applies the Windows Hidden attribute, rereads the document, and validates it before committing generation.
 - Structure failure participates in the same conservative rollback transaction as generated files and identity creation.
 - The editor's metadata-only update validates the matching identity and current template roles, requires every resolved role directory to exist, and writes no project content other than `.projectStructure.json`.
+- A successful metadata-only update preserves the identity document's `projectId` and replaces `paths` with the selected template's complete current role map; it does not merge stale roles from the previous map.
 
 The document is a durable separate contract. It is not a temporary extension of `.projectID.json`, and Catalog's private database is not part of this contract.
+
+The CLIBuilder consumer rules, precedence, and ownership boundaries are defined in [`CLIBUILDER-CONTRACT.md`](CLIBUILDER-CONTRACT.md). Adding these recognized identifiers does not change the template v2 or project-structure v1 JSON shapes and therefore does not require a schema-version increment.
 
 ## 9. Validation layers
 

@@ -4,8 +4,8 @@
 | --- | --- |
 | Document status | Living design — approved baseline and JSON contract |
 | Baseline status | Approved for implementation |
-| Document version | 1.9 |
-| Last updated | 2026-09-02 |
+| Document version | 2.0 |
+| Last updated | 2026-09-09 |
 | Target platform | Windows 11 x64 |
 
 ## 1. Purpose of this document
@@ -164,6 +164,7 @@ Templates may also declare semantic folder roles. When present, generation recor
 | D-044 | Existing projects without a structure document remain valid; consuming tools may use an explicitly bounded legacy convention while adoption proceeds. | Confirmed |
 | D-045 | Existing projects may receive structure metadata through an explicit metadata-only update that requires a matching Template ID and existing resolved role directories. | Confirmed |
 | D-046 | The dedicated Scaffolder artwork is the single product identity across the WPF editor, runner executable, taskbar/window chrome, Explorer menu, shortcuts, and installer; the SVG is retained as the vector master and the multi-resolution ICO is used by Windows surfaces. | Confirmed |
+| D-047 | CLIBuilder consumes `realityscan.projects`, `realityscan.alignment.components`, and `model.exports` from the existing `.projectStructure.json` v1 contract; these are recognized role additions, not a schema change or a parallel metadata system. | Confirmed |
 
 ## 7. User workflows
 
@@ -424,7 +425,7 @@ Arbitrary executable hooks are deliberately excluded.
 
 A folder may optionally request the Windows Hidden attribute. The property is conservative: it is applied only when generation creates that folder. Existing directories are reused without changing their attributes, and the implicit project root has no attribute option.
 
-In template version 2, a folder may also declare one semantic role. Roles describe meaning rather than spelling: `capture.raw` identifies the destination for original camera captures and `capture.processed` identifies corrected reconstruction inputs, regardless of their safe project-relative spelling. Each role is unique within a template. Unknown well-formed roles are preserved, while the editor initially offers only approved known roles.
+In template version 2, a folder may also declare one semantic role. Roles describe meaning rather than spelling: `capture.raw` identifies the destination for original camera captures and `capture.processed` identifies corrected reconstruction inputs. CLIBuilder uses `realityscan.projects` for `.rsproj` projects, `realityscan.alignment.components` for `.rsalign` components, and `model.exports` for exported models and accompanying textures. Every role remains independent of the folder's safe project-relative name or nesting. Each role is unique within a template. Unknown well-formed roles are preserved, while the editor offers only approved known roles.
 
 The engine and editor use only generic node concepts. They contain no MXP-specific model, parser, tab, or generator. MXP, Maya `workspace.mel`, Unreal `.uproject`, Godot `project.godot`, production notes, manifests, and similar formats are represented as ordinary editable text files. Binary DCC starter scenes and other immutable resources are represented as attached asset files.
 
@@ -574,9 +575,9 @@ When a template declares semantic folder roles, Scaffolder writes a separate eng
 
 The document binds to the neighboring identity through the same `projectId` and maps roles to resolved forward-slash relative paths. It contains no absolute project path. Generation validates an existing document and its identity match before changing output, atomically creates or replaces it inside the normal operation journal, applies the Windows Hidden attribute, then rereads it before commit. A malformed, mismatched, or reparse-point document is a blocking error requiring explicit repair.
 
-This structure contract is durable and separate from project identity. It allows RawEqualizer and later tools to ask for `capture.raw` or `capture.processed` without recognizing a template name or hardcoded folder spelling. Consumers remain responsible for verifying that a declared path currently exists, stays within the project root, and is suitable for their operation.
+This structure contract is durable and separate from project identity. It allows RawEqualizer to ask for `capture.raw` or `capture.processed`, and CLIBuilder to ask for its RealityScan and model-export destinations, without recognizing a template name or hardcoded folder spelling. Consumers remain responsible for verifying that a declared path currently exists, stays within the project root, and is suitable for their operation. The normative CLIBuilder consumer behavior is documented in [`CLIBUILDER-CONTRACT.md`](CLIBUILDER-CONTRACT.md).
 
-The editor also provides a metadata-only update for an existing project. It uses the selected saved template, verifies that `.projectID.json` records the same Template ID, resolves roles using the stable identity values and current project path, and requires every destination directory to exist without reparse traversal. It creates or atomically replaces only `.projectStructure.json`; it never reapplies template folders or files.
+The editor also provides a metadata-only update for an existing project. It uses the selected saved template, verifies that `.projectID.json` records the same Template ID, resolves roles using the stable identity values and current project path, and requires every destination directory to exist without reparse traversal. It creates or atomically replaces only `.projectStructure.json`; it never reapplies template folders or files. Replacement preserves the identity's `projectId`, writes the selected template's complete current role map, and deliberately removes roles no longer declared by that template.
 
 ## 13. Generation engine
 
@@ -1103,6 +1104,7 @@ Project Scaffolder only reserves and documents this convention. It does not crea
 | 2026-09-02 | Treat malformed or mismatched existing structure metadata as a blocking repair condition. | Silently falling back after an explicit declaration is damaged could direct imported data to an unintended folder. |
 | 2026-09-02 | Add `capture.processed` and an explicit metadata-only update for existing matching projects. | RawEqualizer needs a durable processed-image destination, while reapplying the full template could overwrite unrelated project content. |
 | 2026-09-02 | Replace the generic ecosystem badge with the dedicated Scaffolder product artwork throughout the production `_2.0` application. | A single recognizable identity avoids confusion with the legacy editor and keeps the installed application, Explorer menu, and installer visually consistent. |
+| 2026-09-09 | Add `realityscan.projects`, `realityscan.alignment.components`, and `model.exports` as recognized roles for CLIBuilder without changing schema versions. | The existing lowercase dotted role grammar and structure map already support additive consumer destinations; preserving template v2 and project-structure v1 maintains compatibility and avoids a parallel system. |
 
 ## 27. Authoritative references
 

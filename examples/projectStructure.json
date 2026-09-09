@@ -3,6 +3,9 @@
   "projectId": "01993a74-7a89-7c13-9c54-76b8bf2bb785",
   "paths": {
     "capture.raw": "DATASET/raw",
-    "capture.processed": "DATASET/processed"
+    "capture.processed": "DATASET/processed",
+    "realityscan.projects": "REALITYSCAN/projects",
+    "realityscan.alignment.components": "REALITYSCAN/alignment-components",
+    "model.exports": "EXPORT/models"
   }
 }

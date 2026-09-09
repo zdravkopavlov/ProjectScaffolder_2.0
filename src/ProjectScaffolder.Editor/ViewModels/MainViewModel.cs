@@ -59,6 +59,9 @@ internal sealed class MainViewModel : ObservableObject
         new(null, "No semantic role"),
         new(ProjectPathRoles.CaptureRaw, "Raw capture destination"),
         new(ProjectPathRoles.CaptureProcessed, "Processed capture destination"),
+        new(ProjectPathRoles.RealityScanProjects, "RealityScan project destination"),
+        new(ProjectPathRoles.RealityScanAlignmentComponents, "RealityScan alignment component destination"),
+        new(ProjectPathRoles.ModelExports, "Model export destination"),
     ];
 
     public IReadOnlyList<VariableOption> VariableChoices { get; } =

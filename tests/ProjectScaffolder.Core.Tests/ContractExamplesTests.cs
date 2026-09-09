@@ -38,21 +38,32 @@ public sealed class ContractExamplesTests
 
         Assert.Equal("DATASET/raw", structure.Paths[ProjectPathRoles.CaptureRaw]);
         Assert.Equal("DATASET/processed", structure.Paths[ProjectPathRoles.CaptureProcessed]);
+        Assert.Equal("REALITYSCAN/projects", structure.Paths[ProjectPathRoles.RealityScanProjects]);
+        Assert.Equal("REALITYSCAN/alignment-components", structure.Paths[ProjectPathRoles.RealityScanAlignmentComponents]);
+        Assert.Equal("EXPORT/models", structure.Paths[ProjectPathRoles.ModelExports]);
         string canonicalJson = ContractJson.Serialize(structure);
         Assert.Equal(canonicalJson, ContractJson.Serialize(ValidatedContractReader.ReadProjectStructure(canonicalJson)));
     }
 
     [Fact]
-    public void TemplateVersionTwoDeclaresCaptureRoles()
+    public void TemplateVersionTwoDeclaresCaptureAndCliBuilderRoles()
     {
         TemplateDocument template = ValidatedContractReader.ReadTemplate(ReadExample("photogrammetry-template-v2.json"));
 
-        FolderNode dataset = Assert.IsType<FolderNode>(Assert.Single(template.Nodes));
+        Assert.Equal(3, template.Nodes.Count);
+        FolderNode dataset = Assert.IsType<FolderNode>(template.Nodes[0]);
         Assert.Equal(2, dataset.Children.Count);
         FolderNode raw = Assert.IsType<FolderNode>(dataset.Children[0]);
         FolderNode processed = Assert.IsType<FolderNode>(dataset.Children[1]);
         Assert.Equal(ProjectPathRoles.CaptureRaw, raw.Role);
         Assert.Equal(ProjectPathRoles.CaptureProcessed, processed.Role);
+
+        FolderNode realityScan = Assert.IsType<FolderNode>(template.Nodes[1]);
+        Assert.Equal(ProjectPathRoles.RealityScanProjects, Assert.IsType<FolderNode>(realityScan.Children[0]).Role);
+        Assert.Equal(ProjectPathRoles.RealityScanAlignmentComponents, Assert.IsType<FolderNode>(realityScan.Children[1]).Role);
+
+        FolderNode export = Assert.IsType<FolderNode>(template.Nodes[2]);
+        Assert.Equal(ProjectPathRoles.ModelExports, Assert.IsType<FolderNode>(Assert.Single(export.Children)).Role);
     }
 
     [Fact]

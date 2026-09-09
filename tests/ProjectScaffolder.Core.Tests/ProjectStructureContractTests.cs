@@ -51,6 +51,29 @@ public sealed class ProjectStructureContractTests
         Assert.Contains(result.Issues, issue => issue.Code == "path.invalid");
     }
 
+    [Fact]
+    public void CliBuilderRolesFitTemplateVersionTwoAndProjectStructureVersionOne()
+    {
+        string[] roles =
+        [
+            ProjectPathRoles.RealityScanProjects,
+            ProjectPathRoles.RealityScanAlignmentComponents,
+            ProjectPathRoles.ModelExports,
+        ];
+        TemplateDocument template = CreateTemplate(
+            2,
+            roles.Select((role, index) => CreateFolder($"destination-{index}", role)).ToArray());
+        var structure = new ProjectStructureDocument
+        {
+            SchemaVersion = 1,
+            ProjectId = Guid.CreateVersion7(),
+            Paths = roles.ToDictionary(role => role, role => $"DESTINATIONS/{role.Replace('.', '-')}"),
+        };
+
+        Assert.True(TemplateValidator.Validate(template).IsValid);
+        Assert.True(ProjectStructureValidator.Validate(structure).IsValid);
+    }
+
     private static FolderNode CreateFolder(string name, string? role = null) => new()
     {
         NodeId = Guid.CreateVersion7(),

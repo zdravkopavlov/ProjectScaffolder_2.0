@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = '2.0.0-alpha.6',
+    [string]$Version = '2.0.0-alpha.7',
     [string]$Configuration = 'Release',
     [string]$InnoCompiler
 )
