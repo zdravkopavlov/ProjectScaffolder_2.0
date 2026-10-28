@@ -148,7 +148,8 @@ internal static class RunnerApplication
                 message,
                 rollback?.Completed,
                 rollback?.PathsRequiringInspection,
-                logPath);
+                logPath,
+                FailureReason.Select(exception, message));
         }
 
         return (int)exitCode;

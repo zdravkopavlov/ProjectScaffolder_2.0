@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectScaffolder.Core\ProjectScaffolder.Core.csproj" />
+    <InternalsVisibleTo Include="ProjectScaffolder.Runner.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

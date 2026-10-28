@@ -1,5 +1,7 @@
 # Project Scaffolder
 
+> Workspace context (2026-09-09): [Overview](../README.md), [current ProjectScaffolder_2.0 state](../docs/projects/ProjectScaffolder_2.0.md), [compatibility](../docs/contracts/compatibility.md). Read the shared state together with this repository documentation.
+
 Project Scaffolder is a Windows 11 utility for building reusable project-folder templates and applying them instantly from the classic File Explorer context menu.
 
 ![Project Scaffolder editor](docs/mockups/project-scaffolder-editor-v3-dark.png)

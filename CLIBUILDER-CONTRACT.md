@@ -42,7 +42,7 @@ All values are normalized paths relative to the project root and use `/` separat
 2. Otherwise, read `.projectID.json` and `.projectStructure.json` from the project root.
 3. Accept project-structure schema version 1 only and require its `projectId` to equal the identity document's `projectId`.
 4. Select the role appropriate for the requested Save or Export operation.
-5. Resolve its value beneath the project root and verify containment and current directory existence before use.
+5. Resolve its value beneath the project root and reject filesystem links. Input directories and files must exist. CLIBuilder Review checks output destinations without creating them; Start may create missing declared output directories and nested output folders after revalidating metadata and checking output collisions. Scaffolder generation and Update metadata retain their own existing-directory rules.
 6. If the structure document or requested role is absent, invalid, mismatched, unsafe, or unavailable, do not invent a folder name. Ask the user for a destination or use an explicitly configured CLIBuilder fallback.
 7. A user-selected override applies to that CLIBuilder operation and does not rewrite Scaffolder metadata.
 

@@ -820,6 +820,8 @@ A failure dialog should state:
 
 Do not show raw stack traces in the primary dialog.
 
+The Runner presentation layer adds one optional `Reason:` beneath the existing summary. It walks at most 32 exceptions and selects the deepest nonempty single-line message of at most 500 characters, excluding generic type-only messages and stack/chain markers. If the selected message equals the summary, no redundant reason is shown. Unusable inner messages leave the nearest usable outer message as the fallback. Single-cause aggregates are unwrapped; multiple-cause aggregates stop traversal without selecting an arbitrary branch or displaying their combined message. Template, target, rollback, inspection path and diagnostic-log fields remain present. This is a presentation rule, not a change to exception wrapping, rollback or full JSON exception diagnostics.
+
 ### 18.3 Logs
 
 Logs should include:
